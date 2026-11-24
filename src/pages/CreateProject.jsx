@@ -7,7 +7,7 @@ import { fromAi } from '../lib/proposal.js'
 import TeamStep, { teamError } from '../components/TeamStep.jsx'
 import { Card, PageHeader, Button, Input, Select } from '../components/ui.jsx'
 
-const STEPS = ['Project details', 'Team & client users', 'Proposal']
+const STEPS = ['Project details', 'Team & client users', 'Proposal (optional)']
 const TYPES = [['fixed_scope', 'Fixed scope'], ['time_material', 'Time & material'], ['support', 'Support / AMC']]
 
 export default function CreateProject() {
@@ -31,8 +31,8 @@ export default function CreateProject() {
     if (step === 0 && (!d.name.trim() || !d.client.trim())) return setErr('Project name and client are required.')
     if (step === 1 && teamError(d)) return setErr(teamError(d))
     if (step === 2) {
-      if (!pdf) return setErr('Upload the proposal PDF.')
-      // The project and its proposal are saved here. The timeline on the next screen is not stored yet.
+      // The proposal is optional. Without one the AI has nothing to read, so the timeline is typed in by hand.
+      // The project (and its proposal, if any) is saved here. The timeline on the next screen is not stored yet.
       setSaving(true); setStuck('')
       try {
         const { id } = savedId ? { id: savedId } : await api('/projects', { method: 'POST', body: {
@@ -41,10 +41,10 @@ export default function CreateProject() {
         } })
         setSavedId(id)
         sessionStorage.setItem('newProject', JSON.stringify({ id, name: d.name, client: d.client, start: d.start, file: d.file }))
-        if (how === 'own') {
-          // Own timeline: the proposal is only stored, the AI is not called.
-          const kept = await apiUpload(`/projects/${id}/proposal?read=0`, pdf)
-          sessionStorage.setItem('proposal', JSON.stringify({ file: d.file, proposalId: kept.proposal.id, modules: [], outOfScope: [], manual: true }))
+        if (!pdf || how === 'own') {
+          // Own timeline: the proposal (if any) is only stored, the AI is not called.
+          const kept = pdf ? await apiUpload(`/projects/${id}/proposal?read=0`, pdf) : null
+          sessionStorage.setItem('proposal', JSON.stringify({ file: pdf ? d.file : null, proposalId: kept ? kept.proposal.id : null, modules: [], outOfScope: [], manual: true }))
           return nav('/projects/new/timeline')
         }
         const up = await apiUpload(`/projects/${id}/proposal`, pdf)
@@ -96,8 +96,8 @@ export default function CreateProject() {
             {!d.file ? (
               <div className="border-2 border-dashed border-indigo-200 bg-indigo-50/40 rounded-xl p-10 text-center">
                 <FileUp className="mx-auto text-indigo-500" />
-                <div className="font-medium mt-2">Upload the signed proposal</div>
-                <div className="text-xs text-slate-500 mt-1 mb-4">PDF, up to 20 MB. It is stored with the project as Proposal v1.</div>
+                <div className="font-medium mt-2">Upload the signed proposal <span className="text-slate-500 font-normal">(optional)</span></div>
+                <div className="text-xs text-slate-500 mt-1 mb-4">PDF, up to 20 MB. It is stored with the project as Proposal v1. No proposal? Skip this and type the timeline yourself.</div>
                 <div className="flex gap-2 justify-center flex-wrap">
                   <label className="cursor-pointer"><span className="rounded-xl px-4 py-2 font-medium rail text-ink hover:brightness-110 inline-block">Choose file</span>
                     <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => { e.target.files[0] && pick(e.target.files[0]); e.target.value = '' }} /></label>
@@ -110,7 +110,7 @@ export default function CreateProject() {
               </div>
             )}
 
-            <fieldset className="mt-6">
+            {pdf && <fieldset className="mt-6">
               <legend className="font-medium text-slate-900 mb-1">How do you want to make the timeline?</legend>
               <p className="text-xs text-slate-500 mb-3">You can edit everything on the next screen either way.</p>
               <div className="grid gap-3 md:grid-cols-2">
@@ -123,7 +123,7 @@ export default function CreateProject() {
                   </label>
                 ))}
               </div>
-            </fieldset>
+            </fieldset>}
           </div>
         )}
 
@@ -131,7 +131,7 @@ export default function CreateProject() {
         {stuck && <div className="bg-amber-50 text-amber-800 rounded-lg px-4 py-3 mt-4" role="alert">The project and proposal are saved, but the timeline could not be drafted: {stuck} <Link to="/projects" className="underline font-medium">Go to projects</Link></div>}
         <div className="flex justify-between mt-6 pt-4 border-t border-slate-100">
           <Button disabled={step === 0} onClick={() => { setStep(step - 1); setErr('') }}>Back</Button>
-          <Button variant="primary" onClick={next} disabled={saving}>{saving ? (how === 'ai' ? 'Saving and reading the proposal…' : 'Saving…') : step === 2 ? (how === 'ai' ? 'Save project and draft timeline' : 'Save project and enter timeline') : 'Next'}</Button>
+          <Button variant="primary" onClick={next} disabled={saving}>{saving ? (pdf && how === 'ai' ? 'Saving and reading the proposal…' : 'Saving…') : step === 2 ? (pdf && how === 'ai' ? 'Save project and draft timeline' : pdf ? 'Save project and enter timeline' : 'Skip proposal, save project and enter timeline') : 'Next'}</Button>
         </div>
       </Card>
     </>
