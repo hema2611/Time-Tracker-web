@@ -11,6 +11,7 @@ import Team from './pages/Team.jsx'
 import Settings from './pages/Settings.jsx'
 import ProjectStart from './pages/ProjectStart.jsx'
 import ProjectDetail from './pages/ProjectDetail.jsx'
+import Attendance from './pages/Attendance.jsx'
 
 export default function App() {
   const { user, loading, offline, retry } = useAuth()
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/projects" replace />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />
+        {user.role !== 'client' && <Route path="/attendance" element={<Attendance />} />}
         {admin && <>
           <Route path="/projects/start" element={<ProjectStart />} />
           <Route path="/projects/new" element={<CreateProject />} />

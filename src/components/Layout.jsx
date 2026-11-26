@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { FolderKanban, Users, BarChart3, UserCog, Settings, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { FolderKanban, Users, BarChart3, UserCog, Settings, LogOut, PanelLeftClose, PanelLeftOpen, Clock } from 'lucide-react'
 import { useAuth } from '../auth.jsx'
 import { roleLabel } from '../lib/api.js'
 
 // sample = screen still shows sample data, not yet connected to the backend.
 const NAV = [
   { to: '/projects', label: 'Projects', icon: FolderKanban },
+  { to: '/attendance', label: 'Attendance', icon: Clock, team: true },
   { to: '/team', label: 'Team & workload', icon: Users, admin: true, sample: true },
   { to: '/reports', label: 'Reports', icon: BarChart3, admin: true, sample: true },
   { to: '/users', label: 'Users & roles', icon: UserCog, admin: true },
@@ -24,7 +25,7 @@ export const Mark = ({ size = 28 }) => (
 
 export default function Layout() {
   const { user, logout } = useAuth()
-  const nav = NAV.filter(n => !n.admin || user.role === 'admin')
+  const nav = NAV.filter(n => (!n.admin || user.role === 'admin') && (!n.team || user.role !== 'client'))
   // The sidebar can be folded to icons; the choice is remembered on this computer.
   const [slim, setSlim] = useState(() => localStorage.getItem('nav.slim') === '1')
   useEffect(() => { localStorage.setItem('nav.slim', slim ? '1' : '0') }, [slim])
