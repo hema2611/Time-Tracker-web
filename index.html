@@ -3,7 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="color-scheme" content="light" />
+<meta name="color-scheme" content="dark light" />
+<script>
+  // Apply the saved theme before anything draws (no flash). First visit follows the OS.
+  (function () {
+    var t = localStorage.getItem('tracker.theme')
+    if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+    document.documentElement.dataset.theme = t
+  })()
+</script>
+<link rel="icon" href="/brand/imaginet-orb.png" />
 <title>ImagiNET Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

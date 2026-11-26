@@ -86,7 +86,7 @@ export default function HolidayCalendar() {
 
       {/* Tabs + year switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <div className="inline-flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+        <div className="inline-flex bg-surface border border-slate-200 rounded-xl p-1 shadow-sm">
           {TABS.map(t => {
             const Icon = t.icon
             const active = tab === t.key
@@ -99,7 +99,7 @@ export default function HolidayCalendar() {
             )
           })}
         </div>
-        <div className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+        <div className="inline-flex items-center gap-1 bg-surface border border-slate-200 rounded-xl p-1 shadow-sm">
           <button onClick={() => setYear(y => y - 1)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500" aria-label="Previous year"><ChevronLeft size={16} /></button>
           <span className="px-3 font-semibold text-slate-800 tabular-nums">Jan – Dec {year}</span>
           <button onClick={() => setYear(y => y + 1)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500" aria-label="Next year"><ChevronRight size={16} /></button>

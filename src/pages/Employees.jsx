@@ -173,7 +173,7 @@ function EmployeeForm({ emp, roles, onClose, onSaved }) {
                 title="Click to upload a photo"
                 className={`relative rounded-full group ${errors.photo ? 'ring-2 ring-red-300 ring-offset-2 rounded-full' : ''}`}>
                 <Avatar photo={f.photo} name={f.name} size={84} />
-                <span className="absolute inset-0 rounded-full bg-slate-900/45 opacity-0 group-hover:opacity-100 transition grid place-items-center text-white">
+                <span className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition grid place-items-center text-white">
                   <Upload size={18} />
                 </span>
               </button>
@@ -213,7 +213,7 @@ function EmployeeForm({ emp, roles, onClose, onSaved }) {
         </div>
 
         {/* Sticky footer */}
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-white rounded-b-2xl">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-surface rounded-b-2xl">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={busy || uploading}>{busy ? 'Saving…' : 'Save employee'}</Button>
         </div>

@@ -1,0 +1,283 @@
+/*
+  ImagiNET Tracker theme: "Obsidian & Violet"
+  ------------------------------------------------------------------
+  THE ONE PLACE FOR COLOURS. Every page must use these, never its own hex values.
+
+  Taken from the ImagiNET Ventures logo (public/brand/imaginet-logo.png) and the orb
+  (public/brand/imaginet-orb.png). The logo is chrome violet: a deep purple shadow,
+  a mid orchid body, lavender highlights and a near-white sheen, plus the grey of
+  "Ventures". The app is a dark, calm surface where violet acts as light, not paint.
+
+  How pages use it:
+    - Semantic names (preferred in new code): bg-canvas, bg-surface, bg-elevated,
+      border-line, text-fg, text-fg-2, text-fg-3, bg-violet, text-violet-light,
+      bg-brand-deep, shadow-glow, plus the status names ok / warn / bad / info.
+    - Existing Tailwind names (slate, indigo, green, amber, red, rose, white) are
+      re-pointed below, so older screens follow the theme without edits.
+      Note: use bg-surface for cards, not bg-white.
+  Text contrast rule: text colours stay readable in both themes (dark ≥7:1, light ≥4.5:1). No fainter greys.
+
+  Two themes, same names: values live in :root (dark, default) and [data-theme="light"].
+  Pages never check the theme; they use the names and the right value comes through.
+  The switch is in src/lib/theme.js (remembered per computer; first visit follows the OS).
+*/
+@theme inline {
+  --color-canvas: var(--t-canvas);
+  --color-surface: var(--t-surface);
+  --color-elevated: var(--t-elevated);
+  --color-sidebar: var(--t-sidebar);
+  --color-line: var(--t-line);
+  --color-line-strong: var(--t-line-strong);
+  --color-brand-deep: var(--t-brand-deep);
+  --color-violet: var(--t-violet);
+  --color-violet-hover: var(--t-violet-hover);
+  --color-violet-light: var(--t-violet-light);
+  --color-violet-sheen: var(--t-violet-sheen);
+  --color-fg: var(--t-fg);
+  --color-fg-2: var(--t-fg-2);
+  --color-fg-3: var(--t-fg-3);
+  --color-ok: var(--t-ok);
+  --color-warn: var(--t-warn);
+  --color-bad: var(--t-bad);
+  --color-info: var(--t-info);
+  --color-cat-work: var(--t-cat-work);
+  --color-cat-away: var(--t-cat-away);
+  --color-cat-idle: var(--t-cat-idle);
+  --color-cat-break: var(--t-cat-break);
+  --color-cat-off: var(--t-cat-off);
+  --color-white: var(--t-white);
+  --color-slate-50: var(--t-slate-50);
+  --color-slate-100: var(--t-slate-100);
+  --color-slate-200: var(--t-slate-200);
+  --color-slate-300: var(--t-slate-300);
+  --color-slate-400: var(--t-slate-400);
+  --color-slate-500: var(--t-slate-500);
+  --color-slate-600: var(--t-slate-600);
+  --color-slate-700: var(--t-slate-700);
+  --color-slate-800: var(--t-slate-800);
+  --color-slate-900: var(--t-slate-900);
+  --color-indigo-50: var(--t-indigo-50);
+  --color-indigo-100: var(--t-indigo-100);
+  --color-indigo-200: var(--t-indigo-200);
+  --color-indigo-300: var(--t-indigo-300);
+  --color-indigo-400: var(--t-indigo-400);
+  --color-indigo-500: var(--t-indigo-500);
+  --color-indigo-600: var(--t-indigo-600);
+  --color-indigo-700: var(--t-indigo-700);
+  --color-indigo-950: var(--t-indigo-950);
+  --color-green-50: var(--t-green-50);
+  --color-green-100: var(--t-green-100);
+  --color-green-200: var(--t-green-200);
+  --color-green-500: var(--t-green-500);
+  --color-green-600: var(--t-green-600);
+  --color-green-700: var(--t-green-700);
+  --color-amber-50: var(--t-amber-50);
+  --color-amber-100: var(--t-amber-100);
+  --color-amber-300: var(--t-amber-300);
+  --color-amber-600: var(--t-amber-600);
+  --color-amber-700: var(--t-amber-700);
+  --color-amber-800: var(--t-amber-800);
+  --color-red-50: var(--t-red-50);
+  --color-red-100: var(--t-red-100);
+  --color-red-200: var(--t-red-200);
+  --color-red-300: var(--t-red-300);
+  --color-red-500: var(--t-red-500);
+  --color-red-600: var(--t-red-600);
+  --color-red-700: var(--t-red-700);
+  --color-rose-50: var(--t-rose-50);
+  --color-rose-300: var(--t-rose-300);
+  --color-rose-500: var(--t-rose-500);
+  --color-brand: var(--t-brand);
+  --color-ink: var(--t-ink);
+
+  --shadow-glow: var(--t-shadow-glow);
+  --shadow-pop:  var(--t-shadow-pop);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---------- Dark: "Obsidian & Violet" (default) ---------- */
+:root {
+  color-scheme: dark;
+  --t-canvas: #07060B;
+  --t-surface: #0E0C16;
+  --t-elevated: #151226;
+  --t-sidebar: #0A0911;
+  --t-line: rgb(167 139 250 / 0.14);
+  --t-line-strong: rgb(167 139 250 / 0.26);
+  --t-brand-deep: #45297F;
+  --t-violet: #7C5CE0;
+  --t-violet-hover: #8E70EA;
+  --t-violet-light: #A78BFA;
+  --t-violet-sheen: #DCCFFD;
+  --t-fg: #F4F2FA;
+  --t-fg-2: #BDB8CE;
+  --t-fg-3: #9A96A8;
+  --t-ok: #4ADE9A;
+  --t-warn: #F5C451;
+  --t-bad: #F87171;
+  --t-info: #A78BFA;
+  --t-cat-work: #7C5CE0;
+  --t-cat-away: #4FD1C5;
+  --t-cat-idle: #8A8696;
+  --t-cat-break: #F5C451;
+  --t-cat-off: #B4384A;
+  --t-white: #FFFFFF;
+  --t-slate-50: #0B0A12;
+  --t-slate-100: #151226;
+  --t-slate-200: #221D36;
+  --t-slate-300: #332C4D;
+  --t-slate-400: #9A96A8;
+  --t-slate-500: #B3AEC4;
+  --t-slate-600: #C8C4D6;
+  --t-slate-700: #CFCBDD;
+  --t-slate-800: #E6E3F0;
+  --t-slate-900: #F4F2FA;
+  --t-indigo-50: rgb(124 92 224 / 0.12);
+  --t-indigo-100: rgb(124 92 224 / 0.20);
+  --t-indigo-200: rgb(167 139 250 / 0.30);
+  --t-indigo-300: #A78BFA;
+  --t-indigo-400: #A78BFA;
+  --t-indigo-500: #8E70EA;
+  --t-indigo-600: #7C5CE0;
+  --t-indigo-700: #BBA4FB;
+  --t-indigo-950: #45297F;
+  --t-green-50: rgb(74 222 154 / 0.10);
+  --t-green-100: rgb(74 222 154 / 0.16);
+  --t-green-200: rgb(74 222 154 / 0.28);
+  --t-green-500: #34C982;
+  --t-green-600: #23A66A;
+  --t-green-700: #4ADE9A;
+  --t-amber-50: rgb(245 196 81 / 0.10);
+  --t-amber-100: rgb(245 196 81 / 0.16);
+  --t-amber-300: #C99A2E;
+  --t-amber-600: #F5C451;
+  --t-amber-700: #F5C451;
+  --t-amber-800: #F8D37A;
+  --t-red-50: rgb(248 113 113 / 0.10);
+  --t-red-100: rgb(248 113 113 / 0.16);
+  --t-red-200: rgb(248 113 113 / 0.28);
+  --t-red-300: rgb(248 113 113 / 0.40);
+  --t-red-500: #F87171;
+  --t-red-600: #E05252;
+  --t-red-700: #C43D3D;
+  --t-rose-50: rgb(251 113 133 / 0.10);
+  --t-rose-300: #FB7185;
+  --t-rose-500: #FB7185;
+  --t-brand: #7C5CE0;
+  --t-ink: #FFFFFF;
+  --t-shadow-glow: 0 0 28px -8px rgb(124 92 224 / 0.75);
+  --t-shadow-pop:  0 18px 40px -16px rgb(0 0 0 / 0.85);
+  --t-glow-bg: rgb(124 92 224 / 0.10);
+  --t-scroll: #262040;
+}
+
+/* ---------- Light: "Pearl & Violet" — same logo colours on a soft lavender-white ---------- */
+[data-theme="light"] {
+  color-scheme: light;
+  --t-canvas: #F6F4FB;
+  --t-surface: #FFFFFF;
+  --t-elevated: #F0ECF9;
+  --t-sidebar: #FFFFFF;
+  --t-line: rgb(69 41 127/0.12);
+  --t-line-strong: rgb(69 41 127/0.22);
+  --t-brand-deep: #45297F;
+  --t-violet: #6A45D6;
+  --t-violet-hover: #5C38C8;
+  --t-violet-light: #7C5CE0;
+  --t-violet-sheen: #45297F;
+  --t-fg: #17131F;
+  --t-fg-2: #4A4458;
+  --t-fg-3: #625C70;
+  --t-ok: #047857;
+  --t-warn: #B45309;
+  --t-bad: #B91C1C;
+  --t-info: #5434B8;
+  --t-cat-work: #6A45D6;
+  --t-cat-away: #0D9488;
+  --t-cat-idle: #9A96A8;
+  --t-cat-break: #D97706;
+  --t-cat-off: #B91C1C;
+  --t-white: #FFFFFF;
+  --t-slate-50: #F6F4FB;
+  --t-slate-100: #EFEBF8;
+  --t-slate-200: #E2DCF0;
+  --t-slate-300: #CCC4E0;
+  --t-slate-400: #625C70;
+  --t-slate-500: #575166;
+  --t-slate-600: #4A4458;
+  --t-slate-700: #2F2A3A;
+  --t-slate-800: #221E2B;
+  --t-slate-900: #17131F;
+  --t-indigo-50: #F1ECFE;
+  --t-indigo-100: #E6DDFD;
+  --t-indigo-200: #D2C3FA;
+  --t-indigo-300: #A78BFA;
+  --t-indigo-400: #8E70EA;
+  --t-indigo-500: #7C5CE0;
+  --t-indigo-600: #6A45D6;
+  --t-indigo-700: #5434B8;
+  --t-indigo-950: #45297F;
+  --t-green-50: #ECFDF5;
+  --t-green-100: #D1FAE5;
+  --t-green-200: #A7F3D0;
+  --t-green-500: #10B981;
+  --t-green-600: #059669;
+  --t-green-700: #047857;
+  --t-amber-50: #FFFBEB;
+  --t-amber-100: #FEF3C7;
+  --t-amber-300: #FCD34D;
+  --t-amber-600: #D97706;
+  --t-amber-700: #B45309;
+  --t-amber-800: #92400E;
+  --t-red-50: #FEF2F2;
+  --t-red-100: #FEE2E2;
+  --t-red-200: #FECACA;
+  --t-red-300: #FCA5A5;
+  --t-red-500: #EF4444;
+  --t-red-600: #DC2626;
+  --t-red-700: #B91C1C;
+  --t-rose-50: #FFF1F2;
+  --t-rose-300: #FDA4AF;
+  --t-rose-500: #F43F5E;
+  --t-brand: #6A45D6;
+  --t-ink: #FFFFFF;
+  --t-shadow-glow: 0 6px 18px -8px rgb(106 69 214 / 0.55);
+  --t-shadow-pop:  0 18px 40px -18px rgb(45 30 90 / 0.28);
+  --t-glow-bg: rgb(124 92 224 / 0.07);
+  --t-scroll: #D2C8EA;
+}
+
+body {
+  @apply text-slate-700 text-sm;
+  background:
+    radial-gradient(1200px 600px at 85% -10%, var(--t-glow-bg), transparent 60%),
+    var(--color-canvas);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+h1, h2, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; color: var(--color-fg); }
+
+input, select, textarea { background-color: var(--color-elevated); color: var(--color-fg); border-color: var(--color-line-strong); }
+input::placeholder, textarea::placeholder { color: var(--color-fg-3); }
+option { background: var(--color-elevated); color: var(--color-fg); }
+:focus-visible { outline: 2px solid var(--color-violet-light); outline-offset: 2px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; box-shadow: 0 0 0 2px rgb(167 139 250 / 0.45); }
+::selection { background: rgb(124 92 224 / 0.35); color: var(--color-fg); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--t-scroll); border-radius: 10px; border: 2px solid var(--color-canvas); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Primary action: violet lit from above, like the orb. */
+.rail { background: linear-gradient(180deg, var(--color-violet-hover), var(--color-violet)); }
+.rail-text {
+  background: linear-gradient(90deg, var(--color-violet-sheen), var(--color-violet-light) 45%, var(--color-violet));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.glass { background: var(--color-surface); }
+
+/* Logo: transparent copy (imaginet-logo-clear.png). On light, deepen it so the pale chrome reads on white. */
+[data-theme="light"] .brand-word { filter: brightness(0.62) saturate(1.5); }
+[data-theme="light"] .rail-text { background-image: linear-gradient(90deg, var(--color-brand-deep), var(--color-violet)); }

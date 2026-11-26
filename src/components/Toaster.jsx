@@ -25,10 +25,10 @@ export default function Toaster() {
         const Icon = m.icon
         return (
           <div key={t.id} role="status"
-            className={`relative overflow-hidden flex items-start gap-3 bg-white border ${m.ring} rounded-xl shadow-[0_12px_30px_-12px_rgba(15,23,42,0.35)] px-4 py-3 rise`}>
+            className={`relative overflow-hidden flex items-start gap-3 bg-surface border ${m.ring} rounded-xl shadow-pop px-4 py-3 rise`}>
             <Icon size={20} className={`${m.dot} shrink-0 mt-0.5`} />
             <p className="flex-1 text-sm text-slate-700 leading-snug">{t.message}</p>
-            <button onClick={() => dismiss(t.id)} className="text-slate-300 hover:text-slate-600 cursor-pointer shrink-0" aria-label="Dismiss"><X size={15} /></button>
+            <button onClick={() => dismiss(t.id)} className="text-fg-3 hover:text-fg cursor-pointer shrink-0" aria-label="Dismiss"><X size={15} /></button>
             <span className={`absolute left-0 bottom-0 h-0.5 ${m.bar} animate-[toast-bar_3.2s_linear_forwards]`} />
           </div>
         )

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react'
-import { RefreshCw, Monitor, Download, ShieldAlert } from 'lucide-react'
+import { RefreshCw, Monitor, Download, ShieldAlert, Sparkles, Puzzle } from 'lucide-react'
 import { api } from '../lib/api.js'
 import { useAuth } from '../auth.jsx'
 import { Card, Pill, PageHeader, Table, Kpi, Button } from '../components/ui.jsx'
@@ -7,11 +7,11 @@ import { Card, Pill, PageHeader, Table, Kpi, Button } from '../components/ui.jsx
 // Hours and breaks come from the desktop agent on each person's computer.
 const KIND = {
   // Five clearly different colours: at desk, away work, idle, break, offline.
-  work: { bar: 'bg-[#8b5cf6]', label: 'At desk' },
-  away_work: { bar: 'bg-[#2dd4bf]', label: 'Away work (meeting, call…)' },
-  idle: { bar: 'bg-[#94a3b8]', label: 'Idle' },
-  break: { bar: 'bg-[#fbbf24]', label: 'Break' },
-  offline: { bar: 'bg-[#b91c1c]', label: 'Offline' },
+  work: { bar: 'bg-cat-work', label: 'At desk' },
+  away_work: { bar: 'bg-cat-away', label: 'Away work (meeting, call…)' },
+  idle: { bar: 'bg-cat-idle', label: 'Idle' },
+  break: { bar: 'bg-cat-break', label: 'Break' },
+  offline: { bar: 'bg-cat-off', label: 'Offline' },
 }
 const STATUS = { working: ['ok', 'Working'], idle: ['neutral', 'Idle'], on_break: ['risk', 'On break'], offline: ['neutral', 'Offline'] }
 
@@ -61,6 +61,36 @@ function DayBar({ pieces }) {
   )
 }
 
+// The 9-hour office day as a ring, the same picture the desktop agent shows:
+// violet = at desk, teal = away work, filling clockwise toward the target.
+function DayRing({ d, size = 148 }) {
+  const target = d.officeDayMinutes || 540
+  const r = 54, c = 2 * Math.PI * r
+  const desk = Math.min(d.deskWorkMinutes, target) / target
+  const awayW = Math.min(d.awayWorkMinutes, Math.max(0, target - d.deskWorkMinutes)) / target
+  const done = d.workMinutes >= target
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 128 128" className="w-full h-full -rotate-90" aria-hidden="true">
+        <circle cx="64" cy="64" r={r} fill="none" stroke="var(--color-elevated)" strokeWidth="10" />
+        <circle cx="64" cy="64" r={r} fill="none" stroke="var(--color-cat-work)" strokeWidth="10" strokeLinecap="round"
+          strokeDasharray={`${desk * c} ${c}`} style={{ filter: 'drop-shadow(0 0 6px rgb(124 92 224 / .5))' }} />
+        {awayW > 0 && <circle cx="64" cy="64" r={r} fill="none" stroke="var(--color-cat-away)" strokeWidth="10"
+          strokeDasharray={`${awayW * c} ${c}`} strokeDashoffset={-desk * c} />}
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-center">
+        <div>
+          <div className="text-2xl font-semibold text-fg tabular-nums">{hm(d.workMinutes)}</div>
+          <div className="text-[11px] uppercase tracking-wider text-fg-3">of {Math.round(target / 60)}h day</div>
+          <div className={`text-xs mt-0.5 ${done ? 'text-ok' : 'text-fg-2'}`}>{done ? 'Day complete' : `${hm(d.remainingMinutes)} left`}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const EXT = { on: ['ok', 'Extension on'], off: ['late', 'Extension off'], other: ['risk', 'Unsupported browser'] }
+
 // Day / Month switch shown in the page header of both views.
 function Tabs({ tab, setTab, admin }) {
   return (
@@ -100,7 +130,7 @@ function MonthView({ tabs }) {
         actions={<>
           {tabs}
           <input type="month" value={month} max={data?.today.slice(0, 7)} onChange={e => e.target.value && setMonth(e.target.value)}
-            className="border border-slate-200 rounded-xl px-3 py-1.5 bg-white" aria-label="Month" />
+            className="border border-slate-200 rounded-xl px-3 py-1.5 bg-surface" aria-label="Month" />
           {month && <a href={`/api/attendance/month?month=${month}&format=xlsx`} download
             className="rail text-ink font-medium rounded-xl px-3.5 py-1.5 inline-flex items-center gap-1.5"><Download size={15} />Excel</a>}
         </>} />
@@ -115,7 +145,7 @@ function MonthView({ tabs }) {
                   <td className="tabular-nums">{p.daysWorked}</td>
                   <td className="tabular-nums">{hm(p.workMinutes)}</td>
                   <td className="tabular-nums">{hm(p.deskWorkMinutes)}</td>
-                  <td className="tabular-nums text-[#2dd4bf]">{hm(p.awayWorkMinutes)}</td>
+                  <td className="tabular-nums text-cat-away">{hm(p.awayWorkMinutes)}</td>
                   <td className="tabular-nums">{hm(p.idleMinutes)}</td>
                   <td className="tabular-nums">{hm(p.breakMinutes)}</td>
                   <td className={`tabular-nums ${p.offlineMinutes ? 'text-amber-600' : ''}`}>{hm(p.offlineMinutes)}</td>
@@ -131,7 +161,7 @@ function MonthView({ tabs }) {
                     <td className="text-slate-500 tabular-nums">{r.login || '–'} – {r.logout || '–'}</td>
                     <td className="tabular-nums">{hm(r.workMinutes)}</td>
                     <td className="tabular-nums">{hm(r.deskWorkMinutes)}</td>
-                    <td className="tabular-nums text-[#2dd4bf]" title={r.awayWork?.map(a => `${a.reason} ${hm(a.minutes)}`).join('\n')}>{hm(r.awayWorkMinutes)}</td>
+                    <td className="tabular-nums text-cat-away" title={r.awayWork?.map(a => `${a.reason} ${hm(a.minutes)}`).join('\n')}>{hm(r.awayWorkMinutes)}</td>
                     <td className="tabular-nums">{hm(r.idleMinutes)}</td>
                     <td className="tabular-nums">{hm(r.breakMinutes)}</td>
                     <td className={`tabular-nums ${r.offlineMinutes ? 'text-amber-600' : ''}`}>{hm(r.offlineMinutes)}</td>
@@ -185,7 +215,7 @@ function RulesView({ tabs }) {
     try { await api('/site-rules', { method: 'POST', body: f }); setF({ ...f, pattern: '', label: '' }); load() } catch (x) { setErr(x.message) }
   }
   const remove = async id => { try { await api(`/site-rules/${id}`, { method: 'DELETE' }); load() } catch (x) { setErr(x.message) } }
-  const field = 'border border-slate-200 rounded-xl px-3 py-1.5 bg-white'
+  const field = 'border border-slate-200 rounded-xl px-3 py-1.5 bg-surface'
   return (
     <>
       <PageHeader title="Attendance" sub="Site rules: which websites and programs count as unproductive" actions={tabs} />
@@ -236,7 +266,7 @@ function OfficeNetworks() {
     try { await api('/office-networks', { method: 'POST', body: f }); setF({ ...f, value: '' }); load() } catch (x) { setErr(x.message) }
   }
   const remove = async id => { try { await api(`/office-networks/${id}`, { method: 'DELETE' }); load() } catch (x) { setErr(x.message) } }
-  const field = 'border border-slate-200 rounded-xl px-3 py-1.5 bg-white'
+  const field = 'border border-slate-200 rounded-xl px-3 py-1.5 bg-surface'
   return (
     <Card className="p-4 mt-4">
       <h2 className="font-semibold text-slate-900">Office networks</h2>
@@ -303,7 +333,7 @@ function DayView({ tabs }) {
         actions={<>
           {tabs}
           <input type="date" value={date} max={data?.today} onChange={e => setDate(e.target.value)}
-            className="border border-slate-200 rounded-xl px-3 py-1.5 bg-white" aria-label="Day" />
+            className="border border-slate-200 rounded-xl px-3 py-1.5 bg-surface" aria-label="Day" />
           <Button onClick={load} disabled={busy} title="Refresh"><RefreshCw size={15} className={busy ? 'animate-spin' : ''} /></Button>
         </>} />
 
@@ -326,7 +356,15 @@ function DayView({ tabs }) {
               </div>
             </div>
 
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 mb-5">
+            <div className="flex flex-col lg:flex-row gap-5 mb-5">
+            <div className="flex lg:flex-col items-center gap-4 lg:w-44">
+              <DayRing d={d} />
+              <div className="flex flex-col gap-1.5 text-xs">
+                {d.claudeMinutes > 0 && <span className="inline-flex items-center gap-1.5 text-violet-light"><Sparkles size={13} />Claude {hm(d.claudeMinutes)}</span>}
+                {d.extension && <Pill tone={EXT[d.extension][0]}><span className="inline-flex items-center gap-1"><Puzzle size={12} />{EXT[d.extension][1]}</span></Pill>}
+              </div>
+            </div>
+            <div className="flex-1 grid gap-3 grid-cols-2 sm:grid-cols-4 content-start">
               <Kpi label="Login" value={time(d.firstIn)} note={<Place p={d.location?.in} />} />
               <Kpi label="Logout" value={isToday && d.stillWorking ? 'Now' : time(d.lastOut)} note={<Place p={d.location?.out} />} />
               <Kpi label="Working time (total)" value={hm(d.workMinutes)} note={`At desk ${hm(d.deskWorkMinutes)}`} />
@@ -335,6 +373,8 @@ function DayView({ tabs }) {
               <Kpi label="Idle" value={hm(d.idleMinutes)} tone={d.idleMinutes > 60 ? 'warn' : undefined} note="PC on, no activity" />
               <Kpi label="Breaks" value={hm(d.breakMinutes)} tone={d.breakMinutes > 90 ? 'warn' : undefined} note={d.breakMinutes > 90 ? 'Over 1h 30m' : undefined} />
               <Kpi label="Offline / agent off" value={hm(d.offlineMinutes)} tone={d.offlineMinutes ? 'warn' : undefined} />
+              <Kpi label="With Claude" value={hm(d.claudeMinutes)} note="Claude Code working; counted as work" />
+            </div>
             </div>
 
             {lead && d.flags?.length > 0 && (
@@ -356,7 +396,7 @@ function DayView({ tabs }) {
                     <li key={i} className="flex justify-between gap-3 py-2 text-sm">
                       <span>
                         <span className={`inline-block w-2.5 h-2.5 rounded-full mr-2 ${KIND[p.kind].bar}`} />{p.reason || KIND[p.kind].label}
-                        {p.kind === 'away_work' && <span className="ml-2 text-xs text-[#2dd4bf]">away work, counted as work</span>}
+                        {p.kind === 'away_work' && <span className="ml-2 text-xs text-cat-away">away work, counted as work</span>}
                       </span>
                       <span className="text-slate-500 tabular-nums">{time(p.start)} – {time(p.end)} · {hm(Math.round((Date.parse(p.end) - Date.parse(p.start)) / 60000))}</span>
                     </li>
@@ -372,7 +412,7 @@ function DayView({ tabs }) {
             )}
             {data.devices.length > 0 && (
               <p className="mt-4 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
-                {data.devices.map(v => <span key={v.name} className="flex items-center gap-1"><Monitor size={13} />{v.name} · last seen {v.lastSeen ? new Date(v.lastSeen.replace(' ', 'T') + 'Z').toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never'}</span>)}
+                {data.devices.map(v => <span key={v.name} className="flex items-center gap-1"><Monitor size={13} />{v.name}{v.version ? ` · agent ${v.version}` : ''} · last seen {v.lastSeen ? new Date(v.lastSeen.replace(' ', 'T') + 'Z').toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never'}</span>)}
               </p>
             )}
           </Card>
@@ -383,7 +423,7 @@ function DayView({ tabs }) {
                 <h2 className="font-semibold text-slate-900">{isToday ? 'Team now' : 'Team on this day'}</h2>
                 <p className="text-xs text-slate-500">Click a name to see their day.</p>
               </div>
-              <Table head={['Name', ...(isToday ? ['Now'] : []), 'Login', 'Logout', 'Working (total)', 'At desk', 'Away work', 'Idle', 'Breaks', 'Offline', 'Unproductive', 'Location', 'Checks']}>
+              <Table head={['Name', ...(isToday ? ['Now'] : []), 'Login', 'Logout', 'Working (total)', 'At desk', 'Away work', 'With Claude', 'Idle', 'Breaks', 'Offline', 'Unproductive', 'Location', 'Checks']}>
                 {team.people.map(p => (
                   <tr key={p.id} className={p.id === who ? 'bg-slate-100/60' : ''}>
                     <td>
@@ -393,9 +433,17 @@ function DayView({ tabs }) {
                     {isToday && <td>{p.hasAgent ? <Pill tone={STATUS[p.status][0]}>{STATUS[p.status][1]}</Pill> : '–'}</td>}
                     <td className="tabular-nums">{time(p.firstIn)}</td>
                     <td className="tabular-nums">{isToday && p.stillWorking ? 'Now' : time(p.lastOut)}</td>
-                    <td className="tabular-nums">{p.firstIn ? hm(p.workMinutes) : '–'}</td>
+                    <td className="tabular-nums">
+                      {p.firstIn ? <>
+                        {hm(p.workMinutes)}
+                        <div className="mt-1 h-1.5 w-20 rounded-full bg-elevated overflow-hidden" title={`${Math.round(Math.min(100, p.workMinutes / (p.officeDayMinutes || 540) * 100))}% of the ${Math.round((p.officeDayMinutes || 540) / 60)}h day`}>
+                          <div className="h-full bg-cat-work" style={{ width: `${Math.min(100, p.workMinutes / (p.officeDayMinutes || 540) * 100)}%` }} />
+                        </div>
+                      </> : '–'}
+                    </td>
                     <td className="tabular-nums">{p.firstIn ? hm(p.deskWorkMinutes) : '–'}</td>
-                    <td className="tabular-nums text-[#2dd4bf]" title={p.awayWork?.map(a => `${a.reason} ${hm(a.minutes)}`).join('\n')}>{p.firstIn ? hm(p.awayWorkMinutes) : '–'}</td>
+                    <td className="tabular-nums text-cat-away" title={p.awayWork?.map(a => `${a.reason} ${hm(a.minutes)}`).join('\n')}>{p.firstIn ? hm(p.awayWorkMinutes) : '–'}</td>
+                    <td className="tabular-nums text-violet-light">{p.firstIn ? hm(p.claudeMinutes) : '–'}</td>
                     <td className="tabular-nums">{p.firstIn ? hm(p.idleMinutes) : '–'}</td>
                     <td className="tabular-nums">{p.firstIn ? hm(p.breakMinutes) : '–'}</td>
                     <td className={`tabular-nums ${p.offlineMinutes ? 'text-amber-600' : ''}`}>{p.firstIn ? hm(p.offlineMinutes) : '–'}</td>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Users, Shield, FolderKanban, CalendarDays, PartyPopper, ChevronDown, Database, Sparkles, Clock, LogOut } from 'lucide-react'
 import { useAuth } from '../auth.jsx'
+import { ThemeToggle } from '../lib/theme.jsx'
 
 const GROUPS = [
   {
@@ -28,25 +29,21 @@ const GROUPS = [
 ]
 const ALL_ITEMS = GROUPS.flatMap(g => g.items)
 
-// ImagiNET wordmark: a rounded blue tile with the monogram.
-export const Brand = ({ dark = false }) => (
-  <div className="flex items-center gap-2.5">
-    <div className="w-9 h-9 shrink-0 rounded-xl bg-indigo-600 grid place-items-center text-white font-bold text-base shadow-[0_6px_16px_-6px_rgba(37,99,235,0.7)]">iN</div>
-    <div className="leading-tight">
-      <div className={`font-display font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>ImagiNET</div>
-      <div className="text-[11px] -mt-0.5 text-slate-400">Tracker</div>
-    </div>
+// The real ImagiNET Ventures logo (public/brand). Wordmark for menus, orb where a square mark is needed.
+export const Brand = ({ compact = false }) => (
+  <div className="flex flex-col items-start gap-1">
+    <img src="/brand/imaginet-logo-clear.png" alt="ImagiNET Ventures" className={`brand-word self-start object-contain ${compact ? 'h-6 w-auto' : 'h-8 w-auto max-w-[200px]'}`} draggable="false" />
+    <div className="text-[11px] uppercase tracking-[0.2em] text-fg-3 pl-0.5">Tracker</div>
   </div>
 )
 
-// Back-compat alias for the colleague's Login.jsx, which imports { Mark }.
 export const Mark = ({ size = 36 }) => (
-  <div className="rounded-xl bg-indigo-600 grid place-items-center text-white font-bold shadow-[0_6px_16px_-6px_rgba(37,99,235,0.7)]" style={{ width: size, height: size, fontSize: size * 0.4 }}>iN</div>
+  <img src="/brand/imaginet-orb.png" alt="ImagiNET" width={size} height={size} className="shrink-0 rounded-full" draggable="false" />
 )
 
 const linkClass = ({ isActive }) =>
   `flex items-center gap-3 rounded-lg pl-6 pr-3 py-2 text-sm font-medium transition ${
-    isActive ? 'bg-indigo-600 text-white shadow-[0_6px_16px_-8px_rgba(37,99,235,0.9)]' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+    isActive ? 'bg-indigo-600 text-white shadow-glow' : 'text-fg-2 hover:bg-elevated hover:text-fg'
   }`
 
 export default function Layout() {
@@ -68,8 +65,8 @@ export default function Layout() {
   return (
     <div className="min-h-screen md:flex">
       {/* Sidebar (desktop) — one solid navy colour */}
-      <aside className="hidden md:flex flex-col shrink-0 sticky top-0 h-screen w-64 bg-[#101c3d] p-4" aria-label="Main menu">
-        <div className="px-1 py-1 mb-6"><Brand dark /></div>
+      <aside className="hidden md:flex flex-col shrink-0 sticky top-0 h-screen w-64 bg-sidebar border-r border-line p-4" aria-label="Main menu">
+        <div className="px-1 py-1 mb-6"><Brand /></div>
         <nav className="space-y-3 overflow-y-auto flex-1 -mx-1 px-1">
           {groups.map(g => {
             const isOpen = !!open[g.key]
@@ -78,8 +75,8 @@ export default function Layout() {
             return (
               <div key={g.key}>
                 <button type="button" onClick={() => setOpen(o => ({ ...o, [g.key]: !o[g.key] }))} aria-expanded={isOpen}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider transition ${hasActive ? 'text-white' : 'text-slate-300'} hover:bg-white/5`}>
-                  <GIcon size={16} className="shrink-0 text-indigo-300" />
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider transition ${hasActive ? 'text-fg' : 'text-fg-2'} hover:bg-elevated`}>
+                  <GIcon size={16} className="shrink-0 text-violet-light" />
                   <span className="flex-1 text-left">{g.label}</span>
                   <ChevronDown size={15} className={`shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
                 </button>
@@ -101,20 +98,21 @@ export default function Layout() {
         </nav>
         <div className="pt-4 border-t border-white/10 px-2 flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <div className="text-sm text-white truncate">{user.name}</div>
+            <div className="text-sm text-fg truncate">{user.name}</div>
             <div className="text-xs text-slate-400 truncate">{user.email}</div>
           </div>
-          <button type="button" onClick={logout} title="Sign out" aria-label="Sign out" className="p-2 rounded-lg text-slate-300 hover:bg-white/10"><LogOut size={17} /></button>
+          <ThemeToggle />
+          <button type="button" onClick={logout} title="Sign out" aria-label="Sign out" className="p-2 rounded-lg text-fg-2 hover:bg-elevated hover:text-fg"><LogOut size={17} /></button>
         </div>
       </aside>
 
       {/* Top bar (phones) */}
-      <header className="md:hidden sticky top-0 z-30 bg-[#101c3d] px-4 py-3">
-        <div className="flex items-center justify-between"><Brand dark /><button type="button" onClick={logout} aria-label="Sign out" className="p-2 rounded-lg text-slate-300"><LogOut size={17} /></button></div>
+      <header className="md:hidden sticky top-0 z-30 bg-sidebar border-r border-line px-4 py-3">
+        <div className="flex items-center justify-between"><Brand /><div className="flex items-center"><ThemeToggle /><button type="button" onClick={logout} aria-label="Sign out" className="p-2 rounded-lg text-fg-2"><LogOut size={17} /></button></div></div>
         <nav className="flex gap-1.5 mt-3 overflow-x-auto [scrollbar-width:none]" aria-label="Main">
           {groups.flatMap(g => g.items).map(({ to, label }) => (
             <NavLink key={to} to={to}
-              className={({ isActive }) => `px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap ${isActive ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-white/5'}`}>{label}</NavLink>
+              className={({ isActive }) => `px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap ${isActive ? 'bg-indigo-600 text-white' : 'text-fg-2 hover:bg-elevated'}`}>{label}</NavLink>
           ))}
         </nav>
       </header>

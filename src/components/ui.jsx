@@ -43,12 +43,12 @@ export function MultiSelect({ label, value = [], onChange, options, placeholder 
       {label && <span className="block text-xs font-medium text-slate-600 mb-1">{label}{req && <span className="text-red-500"> *</span>}</span>}
       <div className="relative" ref={ref}>
         <button type="button" onClick={() => setOpen(o => !o)}
-          className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white text-left focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`}>
+          className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-surface text-left focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`}>
           <span className={selected.length ? 'text-slate-800' : 'text-slate-400'}>{selected.length ? `${selected.length} selected` : placeholder}</span>
           <ChevronDown size={16} className={`shrink-0 text-slate-400 transition ${open ? 'rotate-180' : ''}`} />
         </button>
         {open && (
-          <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-[0_12px_30px_-10px_rgba(15,23,42,0.35)]">
+          <div className="absolute z-50 mt-1 w-full bg-surface border border-slate-200 rounded-xl shadow-pop">
             <div className="p-2 border-b border-slate-100">
               <div className="relative">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -69,7 +69,7 @@ export function MultiSelect({ label, value = [], onChange, options, placeholder 
                   <li key={String(o.value)}>
                     <button type="button" onClick={() => toggle(o.value)}
                       className={`w-full flex items-center gap-2.5 text-left px-3 py-2 text-sm ${on ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}>
-                      <span className={`w-4 h-4 shrink-0 rounded border grid place-items-center ${on ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 bg-white'}`}>
+                      <span className={`w-4 h-4 shrink-0 rounded border grid place-items-center ${on ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 bg-surface'}`}>
                         {on && <Check size={12} strokeWidth={3} />}
                       </span>
                       <span className="truncate">{o.label}</span>
@@ -123,12 +123,12 @@ export function TimeSelect({ label, value, onChange, req, error, hint, placehold
       {label && <span className="block text-xs font-medium text-slate-600 mb-1">{label}{req && <span className="text-red-500"> *</span>}</span>}
       <div className="relative" ref={ref}>
         <button type="button" onClick={() => setOpen(o => !o)}
-          className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white text-left focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`}>
+          className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-surface text-left focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`}>
           <span className={value ? 'text-slate-800' : 'text-slate-400'}>{value ? fmtTime(value) : placeholder}</span>
           <Clock size={16} className="shrink-0 text-slate-400" />
         </button>
         {open && (
-          <ul ref={listRef} className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-[0_12px_30px_-10px_rgba(15,23,42,0.35)] max-h-56 overflow-y-auto py-1">
+          <ul ref={listRef} className="absolute z-50 mt-1 w-full bg-surface border border-slate-200 rounded-xl shadow-pop max-h-56 overflow-y-auto py-1">
             {TIME_SLOTS.map(t => (
               <li key={t.value} data-v={t.value}>
                 <button type="button" onClick={() => { onChange(t.value); setOpen(false) }}
@@ -165,12 +165,12 @@ export function Dropdown({ label, value, onChange, options, placeholder = 'Selec
       {label && <span className="block text-xs font-medium text-slate-600 mb-1">{label}{required && <span className="text-red-500"> *</span>}</span>}
       <div className="relative" ref={ref}>
         <button type="button" onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}
-          className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white text-left focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`}>
+          className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-surface text-left focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`}>
           <span className={show ? 'text-slate-800 truncate' : 'text-slate-400 truncate'}>{show || placeholder}</span>
           <ChevronDown size={16} className={`shrink-0 text-slate-400 transition ${open ? 'rotate-180' : ''}`} />
         </button>
         {open && (
-          <ul role="listbox" className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-[0_12px_30px_-10px_rgba(15,23,42,0.35)] max-h-56 overflow-y-auto py-1">
+          <ul role="listbox" className="absolute z-50 mt-1 w-full bg-surface border border-slate-200 rounded-xl shadow-pop max-h-56 overflow-y-auto py-1">
             {options.map(o => {
               const active = String(o.value) === String(value ?? '')
               return (
@@ -226,18 +226,18 @@ export function DatePicker({ label, value, onChange, req, error, hint, placehold
       {label && <span className="block text-xs font-medium text-slate-600 mb-1">{label}{req && <span className="text-red-500"> *</span>}</span>}
       <div className="relative" ref={ref}>
         <button type="button" onClick={() => setOpen(o => !o)}
-          className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-white text-left focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`}>
+          className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-surface text-left focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`}>
           <span className={display ? 'text-slate-800' : 'text-slate-400'}>{display || placeholder}</span>
           <CalendarIcon size={16} className="shrink-0 text-slate-400" />
         </button>
         {open && (
-          <div className="absolute z-50 mt-1 w-[16rem] bg-white border border-slate-200 rounded-xl shadow-[0_12px_30px_-10px_rgba(15,23,42,0.35)] p-3">
+          <div className="absolute z-50 mt-1 w-[16rem] bg-surface border border-slate-200 rounded-xl shadow-pop p-3">
             <div className="flex items-center gap-1.5 mb-2">
               <button type="button" onClick={() => shift(-1)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><ChevronLeft size={16} /></button>
-              <select value={m} onChange={e => setView(new Date(y, +e.target.value, 1))} className="flex-1 text-sm border border-slate-200 rounded-lg px-1.5 py-1 bg-white">
+              <select value={m} onChange={e => setView(new Date(y, +e.target.value, 1))} className="flex-1 text-sm border border-slate-200 rounded-lg px-1.5 py-1 bg-surface">
                 {MONTHS.map((mn, i) => <option key={mn} value={i}>{mn}</option>)}
               </select>
-              <select value={y} onChange={e => setView(new Date(+e.target.value, m, 1))} className="text-sm border border-slate-200 rounded-lg px-1.5 py-1 bg-white max-h-40">
+              <select value={y} onChange={e => setView(new Date(+e.target.value, m, 1))} className="text-sm border border-slate-200 rounded-lg px-1.5 py-1 bg-surface max-h-40">
                 {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
               </select>
               <button type="button" onClick={() => shift(1)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><ChevronRight size={16} /></button>
@@ -262,12 +262,12 @@ export function DatePicker({ label, value, onChange, req, error, hint, placehold
 }
 
 export const Card = ({ className = '', children }) => (
-  <div className={`glass border border-slate-200 rounded-2xl shadow-[0_10px_30px_-20px_rgb(15_23_42/0.4)] ${className}`}>{children}</div>
+  <div className={`glass border border-slate-200 rounded-2xl shadow-pop ${className}`}>{children}</div>
 )
 
 // A centred dialog used by both masters for create / edit.
 export const Modal = ({ title, sub, onClose, children, size = 'max-w-lg' }) => (
-  <div className="fixed inset-0 z-50 grid place-items-start md:place-items-center overflow-y-auto bg-slate-900/40 p-3 md:p-6" onMouseDown={onClose}>
+  <div className="fixed inset-0 z-50 grid place-items-start md:place-items-center overflow-y-auto bg-black/55 backdrop-blur-[2px] p-3 md:p-6" onMouseDown={onClose}>
     <div className={`glass border border-slate-200 rounded-2xl shadow-2xl w-full ${size} rise mt-6 md:mt-0`} onMouseDown={e => e.stopPropagation()}>
       <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-200">
         <div>
@@ -292,7 +292,7 @@ export const Pill = ({ tone = 'neutral', children }) => (
 export const Button = ({ variant = 'default', className = '', ...p }) => {
   const v = {
     default: 'bg-slate-100 border-slate-200 hover:border-slate-300 hover:bg-slate-200 text-slate-700',
-    primary: 'rail border-transparent text-ink hover:brightness-110 shadow-[0_0_26px_-8px_#5ee6ff]',
+    primary: 'rail border-transparent text-ink hover:brightness-110 shadow-glow',
     success: 'bg-green-600 border-green-600 hover:bg-green-700 text-white',
     danger: 'bg-red-600 border-red-600 hover:bg-red-700 text-white',
     ghost: 'border-transparent hover:bg-slate-100 text-slate-600',
@@ -308,7 +308,7 @@ export const ConfirmDialog = ({ title = 'Are you sure?', message, confirmLabel =
   const go = async () => { setBusy(true); try { await onConfirm() } finally { setBusy(false); onClose() } }
   const Icon = tone === 'danger' ? Trash2 : AlertTriangle
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-900/40 p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/55 backdrop-blur-[2px] p-4" onMouseDown={onClose}>
       <div className="glass border border-slate-200 rounded-2xl shadow-2xl w-full max-w-sm rise p-6 text-center" onMouseDown={e => e.stopPropagation()}>
         <div className={`w-12 h-12 mx-auto rounded-full grid place-items-center ${tone === 'danger' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
           <Icon size={22} />
@@ -353,7 +353,7 @@ export const Input = ({ label, hint, error, req, className = '', ...p }) => (
 export const Select = ({ label, options, className = '', ...p }) => (
   <label className={`block ${className}`}>
     {label && <span className="block text-xs font-medium text-slate-600 mb-1">{label}</span>}
-    <select className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-white" {...p}>
+    <select className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-surface" {...p}>
       {options.map(o => <option key={o}>{o}</option>)}
     </select>
   </label>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../auth.jsx'
-import { Mark } from '../components/Layout.jsx'
+import { Brand } from '../components/Layout.jsx'
+import { ThemeToggle } from '../lib/theme.jsx'
 import { Button, Input } from '../components/ui.jsx'
 
 // The plan line: baseline, a change request bends it, go-live moves. Drawn once on load.
@@ -9,15 +10,15 @@ function PlanLine() {
   const d = 'M40 250 L190 250 L300 150 L470 150 L560 70'
   return (
     <svg viewBox="0 0 600 300" className="w-full max-w-xl" role="img" aria-label="A project plan line from proposal to go-live, bending where a change request was approved">
-      <defs><linearGradient id="pl" x1="0" x2="1"><stop stopColor="#5ee6ff" /><stop offset="1" stopColor="#8b7cff" /></linearGradient></defs>
-      <path d="M40 250 L560 250" stroke="#34407a" strokeWidth="1.5" strokeDasharray="4 7" />
-      <text x="560" y="272" textAnchor="end" fill="#6f7bae" fontSize="12">original plan</text>
+      <defs><linearGradient id="pl" x1="0" x2="1"><stop stopColor="var(--color-violet-sheen)" /><stop offset="1" stopColor="var(--color-violet)" /></linearGradient></defs>
+      <path d="M40 250 L560 250" stroke="var(--color-slate-300)" strokeWidth="1.5" strokeDasharray="4 7" />
+      <text x="560" y="272" textAnchor="end" fill="var(--color-fg-3)" fontSize="12">original plan</text>
       <path d={d} fill="none" stroke="url(#pl)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
         style={{ '--len': 720, strokeDasharray: 720, animation: 'rail-draw 1.5s cubic-bezier(.4,0,.2,1) both' }} />
       {STOPS.map(([x, y, label], i) => (
         <g key={label} style={{ transformOrigin: `${x}px ${y}px`, animation: `node-pop .35s ${0.25 + i * 0.28}s both` }}>
-          <circle cx={x} cy={y} r="7" fill="#080c1f" stroke="url(#pl)" strokeWidth="3" />
-          <text x={x} y={y - 16} textAnchor={i === 0 ? 'start' : i === STOPS.length - 1 ? 'end' : 'middle'} fill="#cbd2ee" fontSize="13">{label}</text>
+          <circle cx={x} cy={y} r="7" fill="var(--color-canvas)" stroke="url(#pl)" strokeWidth="3" />
+          <text x={x} y={y - 16} textAnchor={i === 0 ? 'start' : i === STOPS.length - 1 ? 'end' : 'middle'} fill="var(--color-fg-2)" fontSize="13">{label}</text>
         </g>
       ))}
     </svg>
@@ -25,9 +26,10 @@ function PlanLine() {
 }
 
 const Shell = ({ title, sub, children }) => (
-  <div className="min-h-screen grid lg:grid-cols-[1.15fr_1fr]">
+  <div className="relative min-h-screen grid lg:grid-cols-[1.15fr_1fr]">
+    <ThemeToggle className="absolute top-4 right-4 z-10" />
     <div className="hidden lg:flex flex-col justify-between p-12 xl:p-16">
-      <div className="flex items-center gap-3"><Mark size={32} /><span className="font-display font-semibold text-lg text-slate-900">Tracker</span></div>
+      <div className="flex items-center gap-3"><Brand /></div>
       <div>
         <h1 className="text-5xl xl:text-6xl font-semibold leading-[1.05] text-slate-900 max-w-xl">Every change, <span className="rail-text">on the record.</span></h1>
         <p className="text-slate-500 text-base mt-5 max-w-md">One place for the plan, the change requests and what was agreed in each meeting, so nobody has to scroll a chat group to prove it.</p>
@@ -36,8 +38,8 @@ const Shell = ({ title, sub, children }) => (
       <p className="text-xs text-slate-400">Access is by invitation from your admin.</p>
     </div>
     <div className="grid place-items-center p-5">
-      <div className="glass border border-slate-200 rounded-3xl w-full max-w-sm p-7 shadow-[0_30px_80px_-30px_rgb(0_0_0/0.9)]">
-        <div className="flex items-center gap-2.5 lg:hidden mb-6"><Mark /><span className="font-display font-semibold text-slate-900">Tracker</span></div>
+      <div className="glass border border-slate-200 rounded-3xl w-full max-w-sm p-7 shadow-pop">
+        <div className="flex items-center gap-2.5 lg:hidden mb-6"><Brand compact /></div>
         <h2 className="text-2xl font-semibold text-slate-900">{title}</h2>
         {sub && <p className="text-slate-500 mt-1.5 mb-5">{sub}</p>}
         {children}

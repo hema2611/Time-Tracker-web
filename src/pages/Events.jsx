@@ -96,7 +96,7 @@ export default function Events() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="inline-flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+        <div className="inline-flex bg-surface border border-slate-200 rounded-xl p-1 shadow-sm">
           {[{ v: 'all', label: 'All' }, ...STATUS].map(s => {
             const count = s.v === 'all' ? events.length : events.filter(e => e.status === s.v).length
             const active = filter === s.v
@@ -113,7 +113,7 @@ export default function Events() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search events…"
-            className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+            className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-indigo-200" />
         </div>
       </div>
 
@@ -239,7 +239,7 @@ function EventForm({ ev, types, employees, onClose, onSaved }) {
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-white rounded-b-2xl">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-surface rounded-b-2xl">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={busy}>{busy ? 'Saving…' : 'Save event'}</Button>
         </div>
