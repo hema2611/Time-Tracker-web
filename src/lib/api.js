@@ -34,4 +34,8 @@ export async function apiUpload(path, file) {
   return data
 }
 
-export const fmtDate = s => s ? new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '–'
+// Server datetimes ("YYYY-MM-DD HH:MM:SS") are UTC; plain dates ("YYYY-MM-DD") are calendar dates.
+export const toDate = v => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(v) && !/([zZ]|[+-]\d{2}:?\d{2})$/.test(v) ? new Date(v.replace(' ', 'T') + 'Z') : new Date(v))
+export const fmtDate = s => s ? toDate(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '–'
+// Local calendar day (YYYY-MM-DD) of a server datetime.
+export const localDay = v => { const d = toDate(v); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }

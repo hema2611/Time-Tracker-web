@@ -4,14 +4,17 @@ import { api, apiUpload, fmtDate } from '../lib/api.js'
 import { toast } from '../lib/toast.js'
 import { Card, Pill, Button, PageHeader, Input, Table, Modal, ConfirmDialog, Dropdown, DatePicker, Avatar } from '../components/ui.jsx'
 
+// Stored as the short code; shown with the full name.
 const BLOOD = [
-  'A1+ve', 'A1-ve', 'A2+ve', 'A2-ve',
-  'B+ve', 'B-ve',
-  'A1B+ve', 'A1B-ve', 'A2B+ve', 'A2B-ve',
-  'AB+ve', 'AB-ve',
-  'O+ve', 'O-ve',
-  'Bombay',
-]
+  ['A+', 'A Positive (A+)'], ['A-', 'A Negative (A−)'],
+  ['A1+', 'A1 Positive (A1+)'], ['A1-', 'A1 Negative (A1−)'],
+  ['A2+', 'A2 Positive (A2+)'], ['A2-', 'A2 Negative (A2−)'],
+  ['B+', 'B Positive (B+)'], ['B-', 'B Negative (B−)'],
+  ['AB+', 'AB Positive (AB+)'], ['AB-', 'AB Negative (AB−)'],
+  ['A1B+', 'A1B Positive (A1B+)'], ['A1B-', 'A1B Negative (A1B−)'],
+  ['A2B+', 'A2B Positive (A2B+)'], ['A2B-', 'A2B Negative (A2B−)'],
+  ['O+', 'O Positive (O+)'], ['O-', 'O Negative (O−)'],
+].map(([value, label]) => ({ value, label }))
 const STATUS = [
   { v: 'active', label: 'Active', tone: 'ok' },
   { v: 'inactive', label: 'Inactive', tone: 'neutral' },
@@ -21,7 +24,7 @@ const STATUS = [
 ]
 const statusMeta = v => STATUS.find(s => s.v === v) || STATUS[0]
 const blank = {
-  emp_no: '', name: '', date_of_birth: '', blood_group: '', phone: '', emergency_contact: '',
+  emp_no: '', name: '', email: '', date_of_birth: '', blood_group: '', phone: '', emergency_contact: '',
   aadhar_no: '', photo: '', role_id: '', join_date: '', last_date: '', status: 'active',
   bank_name: '', account_no: '', ifsc: '', branch_name: '',
 }
@@ -63,7 +66,7 @@ export default function Employees() {
         {loading ? <div className="p-8 text-center text-slate-400">Loading…</div>
           : rows.length === 0 ? <div className="p-10 text-center text-slate-400">No employees yet. Add the first one.</div>
           : (
-            <Table head={['Employee', 'Emp No', 'Role', 'Phone', 'Join date', 'Status', '']}>
+            <Table head={['Employee', 'Emp No', 'Email', 'Role', 'Phone', 'Join date', 'Status', '']}>
               {rows.map(e => (
                 <tr key={e.id} className="hover:bg-slate-50">
                   <td>
@@ -76,6 +79,7 @@ export default function Employees() {
                     </div>
                   </td>
                   <td className="text-slate-600">{e.emp_no}</td>
+                  <td className="text-slate-600">{e.email ? <a href={`mailto:${e.email}`} className="hover:text-indigo-600 hover:underline">{e.email}</a> : '—'}</td>
                   <td className="text-slate-600">{e.role_name || '—'}</td>
                   <td className="text-slate-600">{e.phone || '—'}</td>
                   <td className="text-slate-600">{fmtDate(e.join_date)}</td>
@@ -112,6 +116,8 @@ function validateEmployee(f) {
   const e = {}
   if (!f.emp_no.trim()) e.emp_no = 'Employee number is required.'
   if (!f.name.trim()) e.name = 'Full name is required.'
+  if (!f.email.trim()) e.email = 'Email is required.'
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim())) e.email = 'Enter a valid email address.'
   if (!f.photo) e.photo = 'Please upload a photo.'
   if (!f.date_of_birth) e.date_of_birth = 'Date of birth is required.'
   if (!f.blood_group) e.blood_group = 'Select a blood group.'
@@ -155,8 +161,9 @@ function EmployeeForm({ emp, roles, onClose, onSaved }) {
       onSaved()
     } catch (x) {
       setBusy(false)
-      // Surface a duplicate emp_no error on the field; otherwise toast it.
-      if (/employee number/i.test(x.message)) setErrors(e => ({ ...e, emp_no: x.message }))
+      // Put duplicate emp_no / email errors on their field; otherwise toast it.
+      if (/employee number|this number/i.test(x.message)) setErrors(e => ({ ...e, emp_no: x.message }))
+      else if (/email/i.test(x.message)) setErrors(e => ({ ...e, email: x.message }))
       else toast.error(x.message)
     }
   }
@@ -183,13 +190,14 @@ function EmployeeForm({ emp, roles, onClose, onSaved }) {
             <div className="grid sm:grid-cols-2 gap-x-4 gap-y-3.5 flex-1 w-full">
               <Input label="Employee no" req value={f.emp_no} error={errors.emp_no} onChange={e => set('emp_no', e.target.value)} placeholder="EMP001" />
               <Input label="Full name" req value={f.name} error={errors.name} onChange={e => set('name', e.target.value)} placeholder="Full name" />
+              <Input label="Email" req type="email" autoComplete="off" value={f.email} error={errors.email} onChange={e => set('email', e.target.value.trim())} placeholder="name@imaginet.in" className="sm:col-span-2" />
             </div>
           </div>
 
           <Section step="1" title="Basic Information">
             <DatePicker label="Date of birth" req value={f.date_of_birth} error={errors.date_of_birth} onChange={v => set('date_of_birth', v)} maxYear={new Date().getFullYear()} />
             <Dropdown label="Blood group" req value={f.blood_group} error={errors.blood_group} onChange={v => set('blood_group', v)} placeholder="Select blood group"
-              options={[{ value: '', label: '—' }, ...BLOOD.map(b => ({ value: b, label: b }))]} />
+              options={BLOOD} />
             <Input label="Phone no" req inputMode="numeric" value={f.phone} error={errors.phone} onChange={e => set('phone', digits(e.target.value, 10))} placeholder="10-digit mobile" />
             <Input label="Emergency contact" req inputMode="numeric" value={f.emergency_contact} error={errors.emergency_contact} onChange={e => set('emergency_contact', digits(e.target.value, 10))} placeholder="10-digit mobile" />
             <Input label="Aadhar no" req inputMode="numeric" value={f.aadhar_no} error={errors.aadhar_no} onChange={e => set('aadhar_no', digits(e.target.value, 12))} placeholder="12-digit Aadhaar" className="sm:col-span-2" />

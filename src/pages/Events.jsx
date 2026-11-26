@@ -220,7 +220,15 @@ function EventForm({ ev, types, employees, onClose, onSaved }) {
             <Input label="Event title" req value={f.title} error={errors.title} onChange={e => set('title', e.target.value)} placeholder="e.g. December Fun Friday" />
             <DatePicker label="Event date" req value={f.event_date} error={errors.event_date} onChange={v => set('event_date', v)} />
             <Input label="Venue / location" value={f.location} onChange={e => set('location', e.target.value)} placeholder="e.g. Cafeteria, 3rd floor" />
-            <TimeSelect label="Start time" req value={f.start_time} error={errors.start_time} onChange={v => set('start_time', v)} />
+            <TimeSelect label="Start time" req value={f.start_time} error={errors.start_time} onChange={v => {
+              set('start_time', v)
+              // Suggest a one-hour slot when the end time is empty or no longer after the start.
+              if (v && (!f.end_time || f.end_time <= v)) {
+                const [h, m] = v.split(':').map(Number)
+                const mins = Math.min(h * 60 + m + 60, 23 * 60 + 55)
+                set('end_time', `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`)
+              }
+            }} />
             <TimeSelect label="End time" req value={f.end_time} error={errors.end_time} onChange={v => set('end_time', v)} />
             <Dropdown label="Status" req value={f.status} onChange={v => { setStatusTouched(true); set('status', v) }}
               hint={!statusTouched && suggested ? 'Set automatically from the date and time' : (suggested && suggested !== f.status ? `Suggested: ${statusMeta(suggested).label}` : undefined)}
