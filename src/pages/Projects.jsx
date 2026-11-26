@@ -1,94 +1,107 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { LayoutGrid, List, Plus } from 'lucide-react'
-import { api, fmtDate } from '../lib/api.js'
-import { fromAi } from '../lib/proposal.js'
-import { useAuth } from '../auth.jsx'
-import { Card, Pill, PageHeader, Button, Table } from '../components/ui.jsx'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { api } from '../lib/api.js'
+import { toast } from '../lib/toast.js'
+import { Card, Pill, Button, PageHeader, Input, Table, Modal, ConfirmDialog, Dropdown } from '../components/ui.jsx'
 
-const TABS = [['active', 'Active'], ['completed', 'Completed'], ['all', 'All']]
-const STATUS = { active: ['ok', 'Active'], completed: ['done', 'Completed'], on_hold: ['risk', 'On hold'] }
-const TYPE = { fixed_scope: 'Fixed scope', time_material: 'Time & material', support: 'Support / AMC' }
+const blank = { name: '', client_name: '', address: '', contact_person: '', status: 'active' }
 
 export default function Projects() {
-  const { user } = useAuth()
-  const [projects, setProjects] = useState(null)
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
-  const [tab, setTab] = useState('active')
-  const [view, setView] = useState('cards')
-  const [q, setQ] = useState('')
-  const nav = useNavigate()
-  const [busyId, setBusyId] = useState(null)
-  const [note, setNote] = useState('')
-  // For a project that has a proposal but no timeline yet: read the stored proposal again and open the timeline screen.
-  const buildTimeline = async p => {
-    setBusyId(p.id); setNote('')
-    try {
-      const r = await api(`/projects/${p.id}/proposal/read`, { method: 'POST' })
-      if (!r.reading?.modules.length) return setNote(`${p.name}: ${r.ai.status === 'ok' ? 'the AI could not find any work items in the stored proposal.' : r.ai.message}`)
-      sessionStorage.setItem('proposal', JSON.stringify({ ...fromAi(r.reading, r.proposal), readBy: 'ai' }))
-      sessionStorage.setItem('newProject', JSON.stringify({ id: p.id, name: p.name, client: p.client, start: p.start || '', file: r.proposal.fileName }))
-      nav('/projects/new/timeline')
-    } catch (e) { setNote(`${p.name}: ${e.message}`) } finally { setBusyId(null) }
+  const [editing, setEditing] = useState(null)
+  const [confirming, setConfirming] = useState(null)
+
+  const load = () => {
+    setLoading(true)
+    api('/project-master').then(d => setRows(d.projects)).catch(e => setErr(e.message)).finally(() => setLoading(false))
   }
+  useEffect(load, [])
 
-  useEffect(() => { api('/projects').then(d => setProjects(d.projects)).catch(e => setErr(e.message)) }, [])
-
-  const all = projects || []
-  const list = all.filter(p => (tab === 'all' || p.status === tab) && (p.name + p.client + p.tl).toLowerCase().includes(q.toLowerCase()))
-  const count = s => all.filter(p => p.status === s).length
+  const remove = p => setConfirming({
+    title: 'Delete project?',
+    message: `“${p.name}” will be permanently removed.`,
+    confirmLabel: 'Delete project',
+    onConfirm: async () => {
+      try { await api(`/project-master/${p.id}`, { method: 'DELETE' }); toast.success(`Project “${p.name}” deleted.`); load() }
+      catch (e) { toast.error(e.message) }
+    },
+  })
 
   return (
-    <>
-      <PageHeader title="Projects" sub={projects ? `${count('active')} active · ${count('completed')} completed` : ' '}
-        actions={user.role === 'admin' && <Link to="/projects/start"><Button variant="primary" className="flex items-center gap-1.5"><Plus size={15} />New project</Button></Link>} />
+    <div>
+      <PageHeader title="Project Master" sub="Projects, their client and contact person."
+        actions={<Button variant="primary" onClick={() => setEditing({ ...blank })}><Plus size={16} className="inline -mt-0.5 mr-1" />Add project</Button>} />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
-          {TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`px-3 py-1 rounded-md ${tab === k ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{l}</button>)}
-        </div>
-        <div className="flex gap-2 items-center">
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Filter by name, client, TL" className="border border-slate-200 rounded-lg px-3 py-1.5 bg-white" />
-          <Button variant={view === 'cards' ? 'primary' : 'default'} onClick={() => setView('cards')} aria-label="Card view"><LayoutGrid size={15} /></Button>
-          <Button variant={view === 'table' ? 'primary' : 'default'} onClick={() => setView('table')} aria-label="Table view"><List size={15} /></Button>
-        </div>
-      </div>
+      {err && <p className="text-red-600 text-sm mb-3">{err}</p>}
 
-      {note && <div className="bg-amber-50 text-amber-800 rounded-lg px-4 py-2.5 mb-4" role="alert">{note}</div>}
-      {err && <Card className="p-6 text-red-600">{err}</Card>}
-      {!err && !projects && <Card className="p-10 text-center text-slate-400">Loading projects…</Card>}
-      {projects && list.length === 0 && (
-        <Card className="p-10 text-center text-slate-400">
-          {all.length === 0 ? (user.role === 'admin' ? 'No projects yet. Use "New project" to add the first one.' : 'You are not on any project yet.') : 'No projects match.'}
-        </Card>
-      )}
+      <Card className="p-0 overflow-hidden">
+        {loading ? <div className="p-8 text-center text-slate-400">Loading…</div>
+          : rows.length === 0 ? <div className="p-10 text-center text-slate-400">No projects yet. Add the first one.</div>
+          : (
+            <Table head={['Project', 'Client', 'Contact person', 'Address', 'Status', '']}>
+              {rows.map(p => (
+                <tr key={p.id} className="hover:bg-slate-50">
+                  <td className="font-medium text-slate-800">{p.name}</td>
+                  <td className="text-slate-600">{p.client_name || '—'}</td>
+                  <td className="text-slate-600">{p.contact_person || '—'}</td>
+                  <td className="text-slate-600">{p.address || '—'}</td>
+                  <td><Pill tone={p.status === 'active' ? 'ok' : 'neutral'}>{p.status === 'active' ? 'Active' : 'Inactive'}</Pill></td>
+                  <td className="text-right whitespace-nowrap">
+                    <button onClick={() => setEditing(p)} className="text-slate-400 hover:text-indigo-600 p-1.5" title="Edit"><Pencil size={16} /></button>
+                    <button onClick={() => remove(p)} className="text-slate-400 hover:text-red-600 p-1.5" title="Delete"><Trash2 size={16} /></button>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          )}
+      </Card>
 
-      {view === 'cards' ? (
-        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
-          {list.map(p => (
-            <Card key={p.id} className="p-4">
-              <div className="flex justify-between gap-2"><Link to={`/projects/${p.id}`} className="font-semibold text-slate-900 hover:text-indigo-700">{p.name}</Link><Pill tone={STATUS[p.status][0]}>{STATUS[p.status][1]}</Pill></div>
-              <div className="text-xs text-slate-500 mt-1">{p.client} · TL {p.tl}</div>
-              <dl className="grid grid-cols-2 gap-y-2 mt-4 text-xs">
-                <dt className="text-slate-500">Type</dt><dd className="text-right">{TYPE[p.type]}</dd>
-                <dt className="text-slate-500">Start</dt><dd className="text-right">{fmtDate(p.start)}</dd>
-                <dt className="text-slate-500">Go-live</dt><dd className="text-right">{p.golive ? fmtDate(p.golive) : 'No timeline yet'}</dd>
-              </dl>
-              {user.role === 'admin' && !p.golive && <Button className="mt-4 w-full" disabled={busyId === p.id} onClick={() => buildTimeline(p)}>{busyId === p.id ? 'Reading the proposal…' : 'Build timeline from proposal'}</Button>}
-            </Card>
-          ))}
+      {editing && <ProjectForm project={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load() }} />}
+      {confirming && <ConfirmDialog {...confirming} onClose={() => setConfirming(null)} />}
+    </div>
+  )
+}
+
+function ProjectForm({ project, onClose, onSaved }) {
+  const [f, setF] = useState({ ...blank, ...project, client_name: project.client_name || '', address: project.address || '', contact_person: project.contact_person || '' })
+  const [errors, setErrors] = useState({})
+  const [busy, setBusy] = useState(false)
+  const set = (k, v) => { setF(s => ({ ...s, [k]: v })); setErrors(e => (e[k] ? { ...e, [k]: undefined } : e)) }
+
+  const submit = async e => {
+    e.preventDefault()
+    const errs = {}
+    if (!f.name.trim()) errs.name = 'Project name is required.'
+    if (!f.client_name.trim()) errs.client_name = 'Client name is required.'
+    if (!f.contact_person.trim()) errs.contact_person = 'Contact person is required.'
+    if (!f.address.trim()) errs.address = 'Address is required.'
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setBusy(true)
+    try {
+      if (project.id) { await api(`/project-master/${project.id}`, { method: 'PUT', body: f }); toast.success(`Project “${f.name}” updated.`) }
+      else { await api('/project-master', { method: 'POST', body: f }); toast.success(`Project “${f.name}” added.`) }
+      onSaved()
+    } catch (x) { setBusy(false); toast.error(x.message) }
+  }
+
+  return (
+    <Modal title={project.id ? 'Edit project' : 'Add project'} onClose={onClose} size="max-w-lg">
+      <form onSubmit={submit} noValidate className="p-5 space-y-4">
+        <Input label="Project name" req value={f.name} error={errors.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Travel Management App" />
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Input label="Client name" req value={f.client_name} error={errors.client_name} onChange={e => set('client_name', e.target.value)} placeholder="Client company" />
+          <Input label="Contact person" req value={f.contact_person} error={errors.contact_person} onChange={e => set('contact_person', e.target.value)} placeholder="Name" />
         </div>
-      ) : list.length > 0 && (
-        <Card><Table head={['Project', 'Client', 'TL', 'Type', 'Start', 'Go-live', 'Status']}>
-          {list.map(p => (
-            <tr key={p.id}>
-              <td className="font-medium">{p.name}</td><td>{p.client}</td><td>{p.tl}</td><td>{TYPE[p.type]}</td>
-              <td>{fmtDate(p.start)}</td><td>{p.golive ? fmtDate(p.golive) : 'No timeline yet'}</td>
-              <td><Pill tone={STATUS[p.status][0]}>{STATUS[p.status][1]}</Pill></td>
-            </tr>
-          ))}
-        </Table></Card>
-      )}
-    </>
+        <Input label="Address" req value={f.address} error={errors.address} onChange={e => set('address', e.target.value)} placeholder="Client / project address" />
+        <Dropdown label="Status" value={f.status} onChange={v => set('status', v)}
+          options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
+        </div>
+      </form>
+    </Modal>
   )
 }

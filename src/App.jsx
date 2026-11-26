@@ -1,16 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './auth.jsx'
 import Layout from './components/Layout.jsx'
+import Toaster from './components/Toaster.jsx'
 import { Login, ChangePassword } from './pages/Login.jsx'
+import Employees from './pages/Employees.jsx'
+import Roles from './pages/Roles.jsx'
 import Projects from './pages/Projects.jsx'
-import CreateProject from './pages/CreateProject.jsx'
-import TimelineFromProposal from './pages/TimelineFromProposal.jsx'
-import UsersRoles from './pages/UsersRoles.jsx'
-import Reports from './pages/Reports.jsx'
-import Team from './pages/Team.jsx'
-import Settings from './pages/Settings.jsx'
-import ProjectStart from './pages/ProjectStart.jsx'
-import ProjectDetail from './pages/ProjectDetail.jsx'
+import HolidayCalendar from './pages/HolidayCalendar.jsx'
+import Events from './pages/Events.jsx'
 import Attendance from './pages/Attendance.jsx'
 
 export default function App() {
@@ -27,26 +24,22 @@ export default function App() {
   )
   if (!user) return <Login />
   if (user.mustChangePassword) return <ChangePassword />
-  const admin = user.role === 'admin'
 
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/projects" replace />} />
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/projects/:id" element={<ProjectDetail />} />
-        {user.role !== 'client' && <Route path="/attendance" element={<Attendance />} />}
-        {admin && <>
-          <Route path="/projects/start" element={<ProjectStart />} />
-          <Route path="/projects/new" element={<CreateProject />} />
-          <Route path="/projects/new/timeline" element={<TimelineFromProposal />} />
-          <Route path="/team" element={<Team />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/users" element={<UsersRoles />} />
-          <Route path="/settings" element={<Settings />} />
-        </>}
-        <Route path="*" element={<Navigate to="/projects" replace />} />
-      </Route>
-    </Routes>
+    <>
+      <Toaster />
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Navigate to="/employees" replace />} />
+          <Route path="/employees" element={<Employees />} />
+          <Route path="/roles" element={<Roles />} />
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/holiday-calendar" element={<HolidayCalendar />} />
+          <Route path="/events" element={<Events />} />
+          {user.role !== 'client' && <Route path="/attendance" element={<Attendance />} />}
+          <Route path="*" element={<Navigate to="/employees" replace />} />
+        </Route>
+      </Routes>
+    </>
   )
 }

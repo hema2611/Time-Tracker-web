@@ -1,4 +1,4 @@
-// One place for every call to the backend. The session lives in an httpOnly cookie set by the API.
+// One place for every call to the backend.
 export async function api(path, { method = 'GET', body } = {}) {
   let res
   try {
@@ -19,7 +19,7 @@ export async function api(path, { method = 'GET', body } = {}) {
   return data
 }
 
-// File upload (multipart). Same error handling as api().
+// File upload (multipart). Returns the parsed JSON body.
 export async function apiUpload(path, file) {
   const body = new FormData()
   body.append('file', file)
@@ -34,6 +34,4 @@ export async function apiUpload(path, file) {
   return data
 }
 
-export const ROLE_LABEL = { admin: 'Admin / HR', tl: 'Team lead', developer: 'Developer', designer: 'Designer', tester: 'Tester', client: 'Client' }
-export const roleLabel = u => u.role === 'client' ? `Client – ${u.clientAccess || 'viewer'}` : ROLE_LABEL[u.role] || u.role
 export const fmtDate = s => s ? new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '–'

@@ -1,81 +1,125 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
-import { FolderKanban, Users, BarChart3, UserCog, Settings, LogOut, PanelLeftClose, PanelLeftOpen, Clock } from 'lucide-react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Users, Shield, FolderKanban, CalendarDays, PartyPopper, ChevronDown, Database, Sparkles, Clock, LogOut } from 'lucide-react'
 import { useAuth } from '../auth.jsx'
-import { roleLabel } from '../lib/api.js'
 
-// sample = screen still shows sample data, not yet connected to the backend.
-const NAV = [
-  { to: '/projects', label: 'Projects', icon: FolderKanban },
-  { to: '/attendance', label: 'Attendance', icon: Clock, team: true },
-  { to: '/team', label: 'Team & workload', icon: Users, admin: true, sample: true },
-  { to: '/reports', label: 'Reports', icon: BarChart3, admin: true, sample: true },
-  { to: '/users', label: 'Users & roles', icon: UserCog, admin: true },
-  { to: '/settings', label: 'Settings', icon: Settings, admin: true, sample: true },
+const GROUPS = [
+  {
+    key: 'masters', label: 'Masters', icon: Database,
+    items: [
+      { to: '/employees', label: 'Employees', icon: Users },
+      { to: '/roles', label: 'Roles', icon: Shield },
+      { to: '/projects', label: 'Projects', icon: FolderKanban },
+    ],
+  },
+  {
+    key: 'events', label: 'Events', icon: Sparkles,
+    items: [
+      { to: '/holiday-calendar', label: 'Holiday Calendar', icon: CalendarDays },
+      { to: '/events', label: 'Events', icon: PartyPopper },
+    ],
+  },
+  {
+    key: 'work', label: 'Work', icon: Clock, team: true,
+    items: [
+      { to: '/attendance', label: 'Attendance', icon: Clock },
+    ],
+  },
 ]
+const ALL_ITEMS = GROUPS.flatMap(g => g.items)
 
-// Brand mark: a plan line with its milestones.
-export const Mark = ({ size = 28 }) => (
-  <svg width={size} height={size} viewBox="0 0 28 28" aria-hidden="true" className="shrink-0">
-    <defs><linearGradient id="mk" x1="0" x2="1"><stop stopColor="#5ee6ff" /><stop offset="1" stopColor="#8b7cff" /></linearGradient></defs>
-    <path d="M3 20 L10 20 L14 9 L25 9" fill="none" stroke="url(#mk)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="3" cy="20" r="2.6" fill="#5ee6ff" /><circle cx="14" cy="9" r="2.6" fill="#7aa8ff" /><circle cx="25" cy="9" r="2.6" fill="#8b7cff" />
-  </svg>
+// ImagiNET wordmark: a rounded blue tile with the monogram.
+export const Brand = ({ dark = false }) => (
+  <div className="flex items-center gap-2.5">
+    <div className="w-9 h-9 shrink-0 rounded-xl bg-indigo-600 grid place-items-center text-white font-bold text-base shadow-[0_6px_16px_-6px_rgba(37,99,235,0.7)]">iN</div>
+    <div className="leading-tight">
+      <div className={`font-display font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>ImagiNET</div>
+      <div className="text-[11px] -mt-0.5 text-slate-400">Tracker</div>
+    </div>
+  </div>
 )
 
+// Back-compat alias for the colleague's Login.jsx, which imports { Mark }.
+export const Mark = ({ size = 36 }) => (
+  <div className="rounded-xl bg-indigo-600 grid place-items-center text-white font-bold shadow-[0_6px_16px_-6px_rgba(37,99,235,0.7)]" style={{ width: size, height: size, fontSize: size * 0.4 }}>iN</div>
+)
+
+const linkClass = ({ isActive }) =>
+  `flex items-center gap-3 rounded-lg pl-6 pr-3 py-2 text-sm font-medium transition ${
+    isActive ? 'bg-indigo-600 text-white shadow-[0_6px_16px_-8px_rgba(37,99,235,0.9)]' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+  }`
+
 export default function Layout() {
+  const { pathname } = useLocation()
   const { user, logout } = useAuth()
-  const nav = NAV.filter(n => (!n.admin || user.role === 'admin') && (!n.team || user.role !== 'client'))
-  // The sidebar can be folded to icons; the choice is remembered on this computer.
-  const [slim, setSlim] = useState(() => localStorage.getItem('nav.slim') === '1')
-  useEffect(() => { localStorage.setItem('nav.slim', slim ? '1' : '0') }, [slim])
+  const groups = GROUPS.filter(g => !g.team || user.role !== 'client')
+  // Which groups are expanded; remembered on this computer. Default: all open.
+  const [open, setOpen] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('nav.groups')) || { masters: true, events: true } } catch { return { masters: true, events: true } }
+  })
+  useEffect(() => { localStorage.setItem('nav.groups', JSON.stringify(open)) }, [open])
+
+  // Always open the group that holds the current page.
+  useEffect(() => {
+    const g = GROUPS.find(g => g.items.some(i => pathname.startsWith(i.to)))
+    if (g && !open[g.key]) setOpen(o => ({ ...o, [g.key]: true }))
+  }, [pathname])
 
   return (
     <div className="min-h-screen md:flex">
-      {/* Sidebar (desktop) */}
-      <aside className={`hidden md:flex flex-col shrink-0 sticky top-0 h-screen p-3 transition-[width] duration-200 ${slim ? 'w-[76px]' : 'w-64'}`} aria-label="Main menu">
-        <div className="glass border border-slate-200 rounded-2xl flex-1 flex flex-col p-2.5 min-h-0">
-          <NavLink to="/projects" className={`flex items-center gap-2.5 px-2 py-2 mb-3 ${slim ? 'justify-center' : ''}`} aria-label="Project Tracker home">
-            <Mark />{!slim && <span className="font-display font-semibold text-base text-slate-900">Tracker</span>}
-          </NavLink>
-          <nav className="flex-1 space-y-1 overflow-y-auto">
-            {nav.map(({ to, label, icon: Icon, sample }) => (
-              <NavLink key={to} to={to} title={slim ? label : sample ? 'Sample data, not connected yet' : undefined}
-                className={({ isActive }) => `relative flex items-center gap-3 rounded-xl py-2.5 transition ${slim ? 'justify-center px-0' : 'px-3'} ${isActive ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/60'}`}>
-                {({ isActive }) => (<>
-                  {isActive && <span className="rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full" />}
-                  <Icon size={18} className={`shrink-0 ${isActive ? 'text-indigo-600' : ''}`} />
-                  {!slim && <span className="flex-1 truncate">{label}</span>}
-                  {!slim && sample && <span className="text-[10px] rounded px-1.5 py-0.5 bg-amber-100 text-amber-700">sample</span>}
-                </>)}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="border-t border-slate-200 pt-2.5 mt-2 space-y-1">
-            <div className={`flex items-center gap-2.5 px-1.5 py-1.5 ${slim ? 'justify-center' : ''}`}>
-              <div className="w-9 h-9 shrink-0 rounded-xl rail text-ink grid place-items-center font-display font-semibold" aria-hidden="true">{user.name[0]?.toUpperCase()}</div>
-              {!slim && <div className="min-w-0 leading-tight"><div className="text-slate-900 font-medium truncate">{user.name}</div><div className="text-xs text-slate-500 truncate">{roleLabel(user)}</div></div>}
-            </div>
-            <button onClick={logout} title="Sign out" className={`w-full flex items-center gap-3 rounded-xl py-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/60 ${slim ? 'justify-center' : 'px-3'}`}><LogOut size={17} />{!slim && 'Sign out'}</button>
-            <button onClick={() => setSlim(!slim)} aria-pressed={slim} title={slim ? 'Show menu names' : 'Fold the menu'} className={`w-full flex items-center gap-3 rounded-xl py-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/60 ${slim ? 'justify-center' : 'px-3'}`}>
-              {slim ? <PanelLeftOpen size={17} /> : <><PanelLeftClose size={17} />Fold menu</>}
-            </button>
+      {/* Sidebar (desktop) — one solid navy colour */}
+      <aside className="hidden md:flex flex-col shrink-0 sticky top-0 h-screen w-64 bg-[#101c3d] p-4" aria-label="Main menu">
+        <div className="px-1 py-1 mb-6"><Brand dark /></div>
+        <nav className="space-y-3 overflow-y-auto flex-1 -mx-1 px-1">
+          {groups.map(g => {
+            const isOpen = !!open[g.key]
+            const hasActive = g.items.some(i => pathname.startsWith(i.to))
+            const GIcon = g.icon
+            return (
+              <div key={g.key}>
+                <button type="button" onClick={() => setOpen(o => ({ ...o, [g.key]: !o[g.key] }))} aria-expanded={isOpen}
+                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider transition ${hasActive ? 'text-white' : 'text-slate-300'} hover:bg-white/5`}>
+                  <GIcon size={16} className="shrink-0 text-indigo-300" />
+                  <span className="flex-1 text-left">{g.label}</span>
+                  <ChevronDown size={15} className={`shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+                </button>
+                <div className={`grid transition-[grid-template-rows] duration-200 ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                  <div className="overflow-hidden">
+                    <div className="space-y-1 pt-1">
+                      {g.items.map(({ to, label, icon: Icon }) => (
+                        <NavLink key={to} to={to} className={linkClass}>
+                          <Icon size={17} className="shrink-0" />
+                          <span className="truncate">{label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </nav>
+        <div className="pt-4 border-t border-white/10 px-2 flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm text-white truncate">{user.name}</div>
+            <div className="text-xs text-slate-400 truncate">{user.email}</div>
           </div>
+          <button type="button" onClick={logout} title="Sign out" aria-label="Sign out" className="p-2 rounded-lg text-slate-300 hover:bg-white/10"><LogOut size={17} /></button>
         </div>
       </aside>
 
       {/* Top bar (phones) */}
-      <header className="md:hidden sticky top-0 z-30 glass border-b border-slate-200 px-3 py-2">
-        <div className="flex items-center justify-between gap-3">
-          <NavLink to="/projects" className="flex items-center gap-2"><Mark size={24} /><span className="font-display font-semibold text-slate-900">Tracker</span></NavLink>
-          <button onClick={logout} className="flex items-center gap-1.5 text-slate-500" aria-label="Sign out"><LogOut size={16} />Sign out</button>
-        </div>
-        <nav className="flex gap-1 overflow-x-auto mt-2 [scrollbar-width:none]" aria-label="Main">
-          {nav.map(({ to, label }) => <NavLink key={to} to={to} className={({ isActive }) => `px-3 py-1.5 rounded-lg whitespace-nowrap ${isActive ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-500'}`}>{label}</NavLink>)}
+      <header className="md:hidden sticky top-0 z-30 bg-[#101c3d] px-4 py-3">
+        <div className="flex items-center justify-between"><Brand dark /><button type="button" onClick={logout} aria-label="Sign out" className="p-2 rounded-lg text-slate-300"><LogOut size={17} /></button></div>
+        <nav className="flex gap-1.5 mt-3 overflow-x-auto [scrollbar-width:none]" aria-label="Main">
+          {groups.flatMap(g => g.items).map(({ to, label }) => (
+            <NavLink key={to} to={to}
+              className={({ isActive }) => `px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap ${isActive ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-white/5'}`}>{label}</NavLink>
+          ))}
         </nav>
       </header>
 
-      <main className="flex-1 min-w-0 w-full max-w-[1600px] mx-auto px-4 md:pl-3 md:pr-8 pt-6 pb-12"><Outlet /></main>
+      <main className="flex-1 min-w-0 w-full max-w-[1500px] mx-auto px-4 md:px-8 pt-7 pb-14"><Outlet /></main>
     </div>
   )
 }
