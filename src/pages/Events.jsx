@@ -29,6 +29,8 @@ function suggestStatus(date, start, end) {
 
 const blank = { title: '', event_type_id: '', event_date: '', start_time: '', end_time: '', location: '', description: '', status: 'upcoming', employee_ids: [] }
 
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+
 export default function Events() {
   const [events, setEvents] = useState([])
   const [types, setTypes] = useState([])
@@ -148,8 +150,10 @@ export default function Events() {
                     </td>
                     <td><Pill tone={statusMeta(ev.status).tone}>{statusMeta(ev.status).label}</Pill></td>
                     <td className="text-right whitespace-nowrap">
+                      {String(ev.event_date).slice(0, 10) >= todayISO() ? <>
                       <button onClick={() => setEditing(ev)} className="text-slate-400 hover:text-indigo-600 p-1.5" title="Edit"><Pencil size={16} /></button>
                       <button onClick={() => remove(ev)} className="text-slate-400 hover:text-red-600 p-1.5" title="Delete"><Trash2 size={16} /></button>
+                      </> : <span className="text-xs text-slate-400" title="Past events can be viewed but not changed">Past</span>}
                     </td>
                   </tr>
                 )
@@ -221,7 +225,7 @@ function EventForm({ ev, types, employees: initialEmployees, onClose, onSaved })
             <Dropdown label="Event type" req value={f.event_type_id} error={errors.event_type_id} onChange={pickType} placeholder="Select event type"
               options={types.map(t => ({ value: t.id, label: t.label }))} />
             <Input label="Event title" req value={f.title} error={errors.title} onChange={e => set('title', e.target.value)} placeholder="e.g. December Fun Friday" />
-            <DatePicker label="Event date" req value={f.event_date} error={errors.event_date} onChange={v => set('event_date', v)} />
+            <DatePicker label="Event date" req value={f.event_date} error={errors.event_date} onChange={v => set('event_date', v)} min={todayISO()} />
             <Input label="Venue / location" value={f.location} onChange={e => set('location', e.target.value)} placeholder="e.g. Cafeteria, 3rd floor" />
             <TimeSelect label="Start time" req value={f.start_time} error={errors.start_time} onChange={v => {
               set('start_time', v)

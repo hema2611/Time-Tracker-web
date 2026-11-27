@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, CalendarDays, Award, Cake, LayoutGrid, List } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, CalendarDays, Award, Cake, LayoutGrid, List, PartyPopper } from 'lucide-react'
+import EMOJI from '../lib/festivalIcons.js'
 import { api } from '../lib/api.js'
 import { toast } from '../lib/toast.js'
-import { Card, Pill, Button, PageHeader, Input, Modal, ConfirmDialog, Dropdown, DatePicker, Avatar, MonthPicker } from '../components/ui.jsx'
+import { Card, Pill, Button, PageHeader, Input, Modal, ConfirmDialog, Dropdown, DatePicker, Avatar, MonthPicker, fmtTime } from '../components/ui.jsx'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -14,8 +15,46 @@ const KINDS = {
   holiday: { label: 'Holidays', one: 'Holiday', icon: CalendarDays, dot: 'bg-amber-600', chip: 'bg-amber-100 text-amber-700', soft: 'bg-amber-50', ring: 'ring-amber-300' },
   birthday: { label: 'Birthdays', one: 'Birthday', icon: Cake, dot: 'bg-rose-500', chip: 'bg-rose-50 text-rose-500', soft: 'bg-rose-50', ring: 'ring-rose-300' },
   anniversary: { label: 'Work Anniversaries', one: 'Work anniversary', icon: Award, dot: 'bg-green-600', chip: 'bg-green-100 text-green-700', soft: 'bg-green-50', ring: 'ring-green-200' },
+  event: { label: 'Events', one: 'Event', icon: PartyPopper, dot: 'bg-indigo-500', chip: 'bg-indigo-100 text-indigo-700', soft: 'bg-indigo-50', ring: 'ring-indigo-200' },
 }
-const ORDER = ['holiday', 'birthday', 'anniversary']
+const ORDER = ['holiday', 'event', 'birthday', 'anniversary']
+
+// Colourful icon (Microsoft Fluent Emoji, bundled in lib/festivalIcons.js).
+// `name` is a bundled icon, an https image link, or a pasted emoji.
+export const Emoji = ({ name, size = 20, className = '', title }) => {
+  if (name && !EMOJI[name]) {
+    if (/^https:\/\//i.test(name)) return <img src={name} alt={title || ''} width={size} height={size} className={`shrink-0 object-contain ${className}`} style={{ width: size, height: size }} referrerPolicy="no-referrer" loading="lazy" />
+    return <span className={`shrink-0 inline-grid place-items-center leading-none ${className}`} style={{ width: size, height: size, fontSize: size * 0.86 }} role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true}>{name}</span>
+  }
+  const i = EMOJI[name] || EMOJI['spiral-calendar']
+  return <svg viewBox={`0 0 ${i.w} ${i.h}`} width={size} height={size} className={`shrink-0 ${className}`} role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true} dangerouslySetInnerHTML={{ __html: i.b }} />
+}
+
+// Picks an icon from the name: first keyword match wins.
+const HOLIDAY_ICONS = [
+  [/pongal|sankranti|bhogi|lohri|harvest/i, 'sugarcane'], [/kaanum|mattu|maattu/i, 'sheaf-of-rice'], [/kite|uttarayan/i, 'kite'],
+  [/diwali|deepavali|karthigai|deepam/i, 'diya-lamp'], [/christmas/i, 'christmas-tree'], [/good friday|easter/i, 'church'],
+  [/worker|labou?r|may day/i, 'hammer-and-wrench'], [/mother/i, 'bouquet'], [/father/i, 'necktie'], [/children|child/i, 'child'],
+  [/women/i, 'woman'], [/teacher/i, 'books'], [/valentine|love/i, 'red-heart'],
+  [/independence|republic|gandhi|ambedkar|national (day|holiday)/i, 'flag-india'], [/eid|ramzan|ramadan|bakrid|muharram|milad/i, 'star-and-crescent'],
+  [/\bholi\b/i, 'artist-palette'], [/vinayaka|ganesh|ganapati/i, 'elephant'], [/janmashtami|krishna|gokul/i, 'flute'],
+  [/onam/i, 'hibiscus'], [/navaratri|dussehra|vijaya|ayudha|saraswati|durga/i, 'lotus'], [/rama|shivaratri|mahashivaratri/i, 'om'],
+  [/new year|puthandu|ugadi|vishu|gudi/i, 'fireworks'], [/mahavir|buddha|guru|nanak/i, 'dove'],
+]
+const EVENT_ICONS = [
+  [/birthday/i, 'birthday-cake'], [/anniversar/i, 'sports-medal'], [/fun ?friday|game|fun/i, 'video-game'],
+  [/outing|trip|tour|offsite|picnic/i, 'camping'], [/lunch|dinner|breakfast|food|treat/i, 'fork-and-knife-with-plate'],
+  [/training|workshop|session|learning/i, 'graduation-cap'], [/meeting|town ?hall|review/i, 'busts-in-silhouette'],
+  [/demo|presentation|launch|release/i, 'rocket'], [/sport|cricket|tournament|award|winner/i, 'trophy'], [/flight|travel/i, 'airplane'],
+  [/music|dance|cultural/i, 'musical-notes'], [/farewell|welcome|onboard/i, 'waving-hand'], [/gift|secret santa/i, 'wrapped-gift'],
+  [/pongal|diwali|christmas|festival|puja|pooja/i, null], [/party|celebrat/i, 'party-popper'],
+]
+const pick = (list, text, fallback) => (list.find(([re, n]) => n && re.test(text || '')) || [null, fallback])[1]
+// Festival events (e.g. "Pongal celebration") borrow the holiday icon.
+const eventIcon = text => pick(EVENT_ICONS, text, null) || pick(HOLIDAY_ICONS, text, null) || 'confetti-ball'
+const EMOJI_OF = { birthday: 'birthday-cake', anniversary: 'sports-medal' }
+const emojiOf = it => it.emoji || EMOJI_OF[it.kind] || 'spiral-calendar'
+const iconOf = it => ({ size = 16, className }) => <Emoji name={emojiOf(it)} size={size} className={className} />
 
 const pad = n => String(n).padStart(2, '0')
 const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`
@@ -31,10 +70,16 @@ function inYear(src, year) {
 }
 
 // Every calendar item for one year: { kind, key, date, title, sub, photo, holiday? }.
-function buildItems(year, holidays, employees) {
+function buildItems(year, holidays, employees, events = []) {
   const out = []
+  for (const ev of events) {
+    const date = String(ev.event_date).slice(0, 10)
+    if (ev.status === 'inactive' || !date.startsWith(`${year}-`)) continue
+    const time = ev.start_time ? `${fmtTime(ev.start_time)}${ev.end_time ? ` – ${fmtTime(ev.end_time)}` : ''}` : null
+    out.push({ kind: 'event', key: `e${ev.id}`, date, title: ev.title, emoji: eventIcon(`${ev.event_type || ''} ${ev.title}`), sub: [ev.event_type, time, ev.location].filter(Boolean).join(' · ') || null })
+  }
   for (const h of holidays) {
-    out.push({ kind: 'holiday', key: `h${h.id}`, date: h.holiday_date, title: h.name, sub: h.status === 'active' ? null : 'Inactive', inactive: h.status !== 'active', holiday: h })
+    out.push({ kind: 'holiday', key: `h${h.id}`, date: h.holiday_date, title: h.name, emoji: h.icon || pick(HOLIDAY_ICONS, h.name, 'spiral-calendar'), sub: h.status === 'active' ? null : 'Inactive', inactive: h.status !== 'active', holiday: h })
   }
   for (const e of employees) {
     if (LEFT.includes(e.status)) continue
@@ -51,9 +96,10 @@ export default function HolidayCalendar() {
   const now = new Date()
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const [view, setView] = useState(() => localStorage.getItem('cal.view') || 'month')
-  const [show, setShow] = useState({ holiday: true, birthday: true, anniversary: true })
+  const [show, setShow] = useState({ holiday: true, event: true, birthday: true, anniversary: true })
   const [holidays, setHolidays] = useState([])
   const [employees, setEmployees] = useState([])
+  const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
   const [confirming, setConfirming] = useState(null)
@@ -61,13 +107,14 @@ export default function HolidayCalendar() {
 
   const year = cursor.y
   const loadHolidays = () => api(`/holidays?year=${year}`).then(d => setHolidays(d.holidays)).catch(e => toast.error(e.message))
+  useEffect(() => { api('/events').then(d => setEvents(d.events || [])).catch(() => {}) }, [])
   useEffect(() => { api('/employees').then(d => setEmployees(d.employees)).catch(e => toast.error(e.message)) }, [])
   useEffect(() => {
     setLoading(true)
     api(`/holidays?year=${year}`).then(d => setHolidays(d.holidays)).catch(e => toast.error(e.message)).finally(() => setLoading(false))
   }, [year])
 
-  const all = useMemo(() => buildItems(year, holidays, employees), [year, holidays, employees])
+  const all = useMemo(() => buildItems(year, holidays, employees, events), [year, holidays, employees, events])
   const visible = all.filter(it => show[it.kind])
   const monthPrefix = `${year}-${pad(cursor.m + 1)}`
   const monthItems = visible.filter(it => it.date.startsWith(monthPrefix))
@@ -96,7 +143,7 @@ export default function HolidayCalendar() {
 
   return (
     <div>
-      <PageHeader title="Holiday Calendar" sub="Holidays, birthdays and work anniversaries at a glance."
+      <PageHeader title="Holiday Calendar" sub="Holidays, events, birthdays and work anniversaries at a glance."
         actions={<Button variant="primary" onClick={() => addOn('')}><Plus size={16} className="inline -mt-0.5 mr-1" />Add holiday</Button>} />
 
       {/* Toolbar: period navigation · filters · view switch */}
@@ -187,7 +234,7 @@ function MonthGrid({ y, m, items, onAdd }) {
           const col = i % 7, row = Math.floor(i / 7)
           const corner = i === total - 7 ? 'rounded-bl-2xl' : i === total - 1 ? 'rounded-br-2xl' : ''
           const edge = `${col < 6 ? 'border-r' : ''} ${row < rows - 1 ? 'border-b' : ''} border-slate-100 ${corner}`
-          if (c.out) return <div key={`o${i}`} className={`h-14 sm:h-[84px] p-1.5 text-xs text-slate-300 bg-slate-50/50 ${edge}`}><span className="inline-grid place-items-center w-6 h-6">{c.label}</span></div>
+          if (c.out) return <div key={`o${i}`} className={`h-16 sm:h-[104px] p-1.5 text-xs text-slate-300 bg-slate-50/50 ${edge}`}><span className="inline-grid place-items-center w-6 h-6">{c.label}</span></div>
 
           const list = byDate[c.date] || []
           const isToday = c.date === today
@@ -200,22 +247,27 @@ function MonthGrid({ y, m, items, onAdd }) {
           return (
             <div key={c.date} tabIndex={list.length ? 0 : -1}
               aria-label={list.length ? `${longDate(c.date)}: ${list.map(it => `${KINDS[it.kind].one} — ${it.title}`).join('; ')}` : undefined}
-              className={`group relative h-14 sm:h-[84px] p-1.5 outline-none transition ${edge}
+              className={`group relative h-16 sm:h-[104px] p-1.5 outline-none transition ${edge}
                 ${list.length ? `${lead.soft} hover:z-20 focus:z-20 focus-visible:ring-2 ${lead.ring} ring-inset` : weekend ? 'bg-slate-50/70' : 'hover:bg-slate-50/60'}`}>
               <div className="flex items-center justify-between">
                 <span className={`inline-grid place-items-center w-6 h-6 rounded-full text-xs tabular-nums
                   ${isToday ? 'bg-indigo-600 text-white font-semibold' : list.length ? 'font-semibold text-slate-800' : weekend ? 'text-slate-400' : 'text-slate-600'}`}>{c.label}</span>
-                <button type="button" onClick={() => onAdd(c.date)} title="Add a holiday on this date" aria-label={`Add a holiday on ${longDate(c.date)}`}
-                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-surface transition">
+                {list.length > 0 && (
+                  <span className="flex -space-x-1.5 ml-auto mr-0.5" aria-hidden="true">
+                    {list.slice(0, 3).map(it => <span key={it.key} className="drop-shadow-sm"><Emoji name={emojiOf(it)} size={26} className="sm:w-[30px] sm:h-[30px]" /></span>)}
+                  </span>
+                )}
+                {c.date >= today && <button type="button" onClick={() => onAdd(c.date)} title="Add a holiday on this date" aria-label={`Add a holiday on ${longDate(c.date)}`}
+                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded-md bg-surface text-slate-400 hover:text-indigo-600 shadow-sm transition">
                   <Plus size={13} />
-                </button>
+                </button>}
               </div>
 
               {/* Chips (desktop) / dots (phone) */}
               <div className="hidden sm:block mt-1 space-y-0.5">
                 {list.slice(0, list.length > 2 ? 1 : 2).map(it => (
                   <div key={it.key} className={`flex items-center gap-1 rounded px-1.5 py-px text-[11px] font-medium leading-4 truncate ${KINDS[it.kind].chip}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${KINDS[it.kind].dot}`} /><span className="truncate">{it.title}</span>
+                    {(() => { const I = iconOf(it); return <I size={14} /> })()}<span className="truncate">{it.title}</span>
                   </div>
                 ))}
                 {list.length > 2 && <div className="text-[11px] font-medium leading-4 text-slate-500 px-1">+{list.length - 1} more</div>}
@@ -232,11 +284,11 @@ function MonthGrid({ y, m, items, onAdd }) {
                   <ul className="space-y-2">
                     {list.map(it => {
                       const K = KINDS[it.kind]
-                      const Icon = K.icon
+                      const Icon = iconOf(it)
                       return (
                         <li key={it.key} className="flex items-center gap-2.5">
-                          {it.kind === 'holiday'
-                            ? <span className={`w-8 h-8 rounded-full grid place-items-center shrink-0 ${K.chip}`}><Icon size={15} /></span>
+                          {['holiday', 'event'].includes(it.kind)
+                            ? <span className={`w-9 h-9 rounded-full grid place-items-center shrink-0 ${K.soft}`}><Icon size={24} /></span>
                             : <Avatar photo={it.photo} name={it.title} size={32} />}
                           <div className="min-w-0">
                             <div className="text-sm font-medium text-slate-800 truncate">{it.title}</div>
@@ -267,7 +319,7 @@ function MonthKanban({ y, m, items, show, actions }) {
   return (
     <div className="mb-6">
       <h2 className="text-base font-semibold text-slate-800 mb-3">{MONTHS[m]} {y} at a glance</h2>
-      <div className={`grid gap-4 ${cols.length === 3 ? 'lg:grid-cols-3' : cols.length === 2 ? 'md:grid-cols-2' : ''}`}>
+      <div className={`grid gap-4 ${cols.length === 4 ? 'md:grid-cols-2 xl:grid-cols-4' : cols.length === 3 ? 'lg:grid-cols-3' : cols.length === 2 ? 'md:grid-cols-2' : ''}`}>
         {cols.map(k => {
           const K = KINDS[k]
           const Icon = K.icon
@@ -301,7 +353,9 @@ function ItemCard({ it, isToday, actions }) {
         <div className="text-base font-bold leading-none tabular-nums">{dt.getDate()}</div>
         <div className="text-[10px] uppercase mt-0.5">{dt.toLocaleDateString('en-GB', { weekday: 'short' })}</div>
       </div>
-      {it.kind !== 'holiday' && <Avatar photo={it.photo} name={it.title} size={32} />}
+      {['holiday', 'event'].includes(it.kind)
+        ? (() => { const I = iconOf(it); return <span className={`w-10 h-10 rounded-full grid place-items-center shrink-0 ${K.soft}`}><I size={26} /></span> })()
+        : <Avatar photo={it.photo} name={it.title} size={32} />}
       <div className="min-w-0 flex-1">
         <div className="font-medium text-slate-800 truncate">{it.title}</div>
         <div className="text-xs text-slate-500 truncate">
@@ -312,8 +366,8 @@ function ItemCard({ it, isToday, actions }) {
       {it.kind === 'holiday' && (
         <div className="flex items-center shrink-0">
           {it.inactive && <Pill tone="neutral">Inactive</Pill>}
-          <button onClick={() => actions.edit(it.holiday)} className="text-slate-400 hover:text-indigo-600 p-1" title="Edit holiday"><Pencil size={15} /></button>
-          <button onClick={() => actions.remove(it.holiday)} className="text-slate-400 hover:text-red-600 p-1" title="Delete holiday"><Trash2 size={15} /></button>
+          {it.date >= todayISO() && <><button onClick={() => actions.edit(it.holiday)} className="text-slate-400 hover:text-indigo-600 p-1" title="Edit holiday"><Pencil size={15} /></button>
+          <button onClick={() => actions.remove(it.holiday)} className="text-slate-400 hover:text-red-600 p-1" title="Delete holiday"><Trash2 size={15} /></button></>}
         </div>
       )}
     </div>
@@ -357,10 +411,12 @@ function YearList({ year, items, actions }) {
                           <span className="block text-xs text-slate-500">{dt.toLocaleDateString('en-GB', { weekday: 'long' })}</span>
                         </div>
                         <span className={`hidden sm:inline-flex w-fit items-center gap-1.5 text-xs font-medium rounded-full px-2 py-0.5 ${K.chip}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${K.dot}`} />{K.one}
+                          {(() => { const I = iconOf(it); return <I size={14} /> })()}{K.one}
                         </span>
                         <div className="flex items-center gap-2.5 min-w-0">
-                          {it.kind !== 'holiday' && <Avatar photo={it.photo} name={it.title} size={28} />}
+                          {['holiday', 'event'].includes(it.kind)
+                            ? (() => { const I = iconOf(it); return <span className={`w-9 h-9 rounded-full grid place-items-center shrink-0 ${K.soft}`}><I size={24} /></span> })()
+                            : <Avatar photo={it.photo} name={it.title} size={28} />}
                           <div className="min-w-0">
                             <div className="font-medium text-slate-800 truncate">{it.title}</div>
                             <div className="text-xs text-slate-500 truncate sm:hidden">{K.one}{it.sub ? ` · ${it.sub}` : ''}</div>
@@ -370,8 +426,8 @@ function YearList({ year, items, actions }) {
                         <div className="flex items-center gap-1 justify-end">
                           {isToday && <Pill tone="risk">Today</Pill>}
                           {it.kind === 'holiday' && (<>
-                            <button onClick={() => actions.edit(it.holiday)} className="text-slate-400 hover:text-indigo-600 p-1" title="Edit holiday"><Pencil size={15} /></button>
-                            <button onClick={() => actions.remove(it.holiday)} className="text-slate-400 hover:text-red-600 p-1" title="Delete holiday"><Trash2 size={15} /></button>
+                            {it.date >= todayISO() && <><button onClick={() => actions.edit(it.holiday)} className="text-slate-400 hover:text-indigo-600 p-1" title="Edit holiday"><Pencil size={15} /></button>
+                            <button onClick={() => actions.remove(it.holiday)} className="text-slate-400 hover:text-red-600 p-1" title="Delete holiday"><Trash2 size={15} /></button></>}
                           </>)}
                         </div>
                       </li>
@@ -389,7 +445,7 @@ function YearList({ year, items, actions }) {
 /* ---------- Add / edit holiday ---------- */
 
 function HolidayForm({ holiday, year, onClose, onSaved }) {
-  const [f, setF] = useState({ holiday_date: holiday.holiday_date || '', name: holiday.name || '', status: holiday.status || 'active' })
+  const [f, setF] = useState({ holiday_date: holiday.holiday_date || '', name: holiday.name || '', icon: holiday.icon || '', status: holiday.status || 'active' })
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
   const set = (k, v) => { setF(s => ({ ...s, [k]: v })); setErrors(e => (e[k] ? { ...e, [k]: undefined } : e)) }
@@ -411,8 +467,9 @@ function HolidayForm({ holiday, year, onClose, onSaved }) {
   return (
     <Modal title={holiday.id ? 'Edit holiday' : 'Add holiday'} sub="Pick the date and name the festival or occasion." onClose={onClose} size="max-w-md">
       <form onSubmit={submit} noValidate className="p-5 space-y-4">
-        <DatePicker label="Date" req value={f.holiday_date} error={errors.holiday_date} onChange={v => set('holiday_date', v)} minYear={year - 5} maxYear={year + 5} />
+        <DatePicker label="Date" req value={f.holiday_date} error={errors.holiday_date} onChange={v => set('holiday_date', v)} min={todayISO()} maxYear={year + 5} hint="Today or a later date. Past days can be viewed but not changed." />
         <Input label="Holiday / festival name" req value={f.name} error={errors.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Pongal, Diwali, Christmas" />
+        <IconField name={f.name} value={f.icon} onChange={v => set('icon', v)} />
         <Dropdown label="Status" value={f.status} onChange={v => set('status', v)}
           options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
         <div className="flex justify-end gap-2 pt-1">
@@ -423,3 +480,90 @@ function HolidayForm({ holiday, year, onClose, onSaved }) {
     </Modal>
   )
 }
+
+/* ---------- Icon preview + picker for a holiday ---------- */
+
+// Icons offered in the picker, grouped. Suggestions come from the holiday name.
+const ICON_GROUPS = [
+  ['Festivals', ['sugarcane', 'sheaf-of-rice', 'pot-of-food', 'cooked-rice', 'cow', 'ox', 'kite', 'diya-lamp', 'sparkler', 'fireworks', 'candle', 'fire', 'christmas-tree', 'wrapped-gift', 'bell', 'artist-palette', 'elephant', 'flute', 'peacock', 'lotus', 'hibiscus', 'om', 'hindu-temple', 'star-and-crescent', 'crescent-moon', 'mosque', 'church', 'synagogue', 'dove', 'folded-hands']],
+  ['National & days', ['flag-india', 'hammer-and-wrench', 'raised-fist', 'bouquet', 'necktie', 'child', 'woman', 'books', 'school', 'red-heart', 'green-heart', 'smiling-face-with-hearts']],
+  ['Celebration', ['party-popper', 'confetti-ball', 'balloon', 'ribbon', 'sparkles', 'glowing-star', 'star', 'dizzy', 'birthday-cake', 'trophy', 'sports-medal', 'long-drum', 'musical-notes', 'money-bag', 'coin', 'red-envelope']],
+  ['Nature', ['sun-with-face', 'sun-behind-cloud', 'rainbow', 'cherry-blossom', 'sunflower', 'tulip', 'rose', 'mango', 'coconut', 'banana']],
+  ['Other', ['spiral-calendar', 'camping', 'airplane', 'video-game', 'fork-and-knife-with-plate', 'rice-cracker', 'bookmark-tabs', 'flower-playing-cards']],
+]
+const titleOf = n => n.replace(/-/g, ' ')
+const isCustom = v => v && !EMOJI[v]
+const matches = (n, term) => n.includes(term.replace(/\s+/g, '-')) || titleOf(n).includes(term)
+
+function IconField({ name, value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const [paste, setPaste] = useState(isCustom(value) ? value : '')
+  const [pasteErr, setPasteErr] = useState('')
+  const auto = pick(HOLIDAY_ICONS, name, 'spiral-calendar')
+  const current = value || auto
+  const suggested = [...new Set([auto, ...HOLIDAY_ICONS.filter(([re]) => re.test(name || '')).map(([, n]) => n)])].filter(n => n !== 'spiral-calendar')
+  const term = q.trim().toLowerCase()
+  const choose = n => { onChange(n); setOpen(false) }
+  const usePaste = () => {
+    const v = paste.trim()
+    if (!v) { setPasteErr('Paste an emoji or an image link.'); return }
+    if (/^[a-z][a-z0-9+.-]*:/i.test(v) && !/^https:\/\//i.test(v)) { setPasteErr('An image link must start with https://'); return }
+    if (v.length > 500) { setPasteErr('That is too long.'); return }
+    setPasteErr(''); choose(v)
+  }
+  return (
+    <div>
+      <span className="block text-xs font-medium text-slate-600 mb-1">Icon</span>
+      <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5">
+        <span className="w-14 h-14 rounded-2xl grid place-items-center bg-amber-50 shrink-0"><Emoji name={current} size={40} title="Icon preview" /></span>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium text-slate-800 truncate capitalize">{value ? (isCustom(value) ? 'Your own icon' : titleOf(value)) : name.trim() ? `Automatic for “${name.trim()}”` : 'Automatic'}</div>
+          <div className="text-xs text-slate-500">{value ? 'Chosen by you' : 'Picked from the name. Change it if it does not fit.'}</div>
+        </div>
+        <Button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}>{open ? 'Close' : 'Change icon'}</Button>
+        {value && <Button type="button" variant="ghost" onClick={() => { onChange(''); setPaste('') }} title="Go back to the automatic icon">Reset</Button>}
+      </div>
+
+      {open && (
+        <div className="mt-2 rounded-xl border border-slate-200 p-3 space-y-3">
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search icons, e.g. lamp, flag, flower" aria-label="Search icons" autoFocus
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+          {!term && suggested.length > 0 && <IconGrid title="Suggested for this name" names={suggested} value={current} onPick={choose} />}
+          <div className="max-h-56 overflow-y-auto space-y-3 pr-1">
+            {ICON_GROUPS.map(([g, names]) => {
+              const list = term ? names.filter(n => matches(n, term)) : names
+              return list.length ? <IconGrid key={g} title={g} names={list} value={current} onPick={choose} /> : null
+            })}
+            {term && !ICON_GROUPS.some(([, n]) => n.some(x => matches(x, term))) && <p className="text-sm text-slate-400">No icon matches “{q}”. Paste your own below.</p>}
+          </div>
+          <div>
+            <span className="block text-xs font-medium text-slate-600 mb-1">Or paste your own: an emoji (🪔) or an image link (https://…)</span>
+            <div className="flex gap-2 items-center">
+              {paste.trim() && !pasteErr && <Emoji name={paste.trim()} size={28} />}
+              <input value={paste} onChange={e => { setPaste(e.target.value); setPasteErr('') }} placeholder="🪔  or  https://…/icon.png" aria-label="Paste an emoji or image link"
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); usePaste() } }}
+                className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${pasteErr ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`} />
+              <Button type="button" onClick={usePaste}>Use</Button>
+            </div>
+            {pasteErr && <span className="block text-xs text-red-600 mt-1">{pasteErr}</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const IconGrid = ({ title, names, value, onPick }) => (
+  <div>
+    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">{title}</div>
+    <div className="grid grid-cols-8 gap-1.5">
+      {names.map(n => (
+        <button key={n} type="button" onClick={() => onPick(n)} title={titleOf(n)} aria-label={titleOf(n)} aria-pressed={value === n}
+          className={`aspect-square rounded-xl grid place-items-center transition ${value === n ? 'bg-indigo-50 ring-2 ring-indigo-500' : 'hover:bg-slate-100'}`}>
+          <Emoji name={n} size={28} />
+        </button>
+      ))}
+    </div>
+  </div>
+)
