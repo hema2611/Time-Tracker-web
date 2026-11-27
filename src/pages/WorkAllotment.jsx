@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, X, Briefcase, Globe, Smartphone, ListChecks } fro
 import { api, fmtDate } from '../lib/api.js'
 import { toast } from '../lib/toast.js'
 import { Card, Button, PageHeader, Input, Modal, ConfirmDialog, Dropdown, MultiSelect, Avatar, DatePicker } from '../components/ui.jsx'
+import { useQuickAdd } from '../components/QuickAdd.jsx'
 
 const TEAM_ICON = { website: Globe, application: Smartphone }
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
@@ -128,7 +129,9 @@ function AllotForm({ item, teams, onClose, onSaved }) {
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => { api('/work-allotments/options').then(setOpts).catch(e => toast.error(e.message)) }, [])
+  const loadOpts = () => api('/work-allotments/options').then(setOpts).catch(e => toast.error(e.message))
+  useEffect(() => { loadOpts() }, [])
+  const qa = useQuickAdd() // "+ Add new project / employee" inside the dropdowns
 
   const clear = k => setErrors(e => (e[k] ? { ...e, [k]: undefined } : e))
   const setItem = (idx, k, v) => { setItems(list => list.map((it, i) => (i === idx ? { ...it, [k]: v } : it))); clear(`${idx}.${k}`) }
@@ -181,9 +184,11 @@ function AllotForm({ item, teams, onClose, onSaved }) {
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               <Dropdown label="Project" required value={it.project_id} error={errors[`${idx}.project_id`]} onChange={v => setItem(idx, 'project_id', v)}
-                placeholder={opts.projects.length ? 'Select a project' : 'No active projects'} options={projectOptions(idx)} />
+                placeholder={opts.projects.length ? 'Select a project' : 'No active projects'} options={projectOptions(idx)}
+                {...qa.props('project', async id => { await loadOpts(); setItem(idx, 'project_id', id) })} />
               <MultiSelect label="Employees" req value={it.employee_ids} error={errors[`${idx}.employee_ids`]} onChange={v => setItem(idx, 'employee_ids', v)}
-                placeholder="Select employees" options={employeeOptions} />
+                placeholder="Select employees" options={employeeOptions}
+                {...qa.props('employee', async id => { await loadOpts(); setItem(idx, 'employee_ids', [...it.employee_ids, id]) })} />
             </div>
             <div>
               <span className="block text-xs font-medium text-slate-600 mb-1">Works<span className="text-red-500"> *</span></span>
@@ -214,6 +219,7 @@ function AllotForm({ item, teams, onClose, onSaved }) {
           <Button type="submit" variant="primary" disabled={busy}>{busy ? 'Saving…' : item.id ? 'Save changes' : 'Allot work'}</Button>
         </div>
       </form>
+      {qa.node}
     </Modal>
   )
 }

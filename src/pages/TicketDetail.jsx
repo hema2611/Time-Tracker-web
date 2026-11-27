@@ -5,6 +5,7 @@ import { api, fmtDate, localDay } from '../lib/api.js'
 import { toast } from '../lib/toast.js'
 import { useAuth } from '../auth.jsx'
 import { Card, Button, Input, Textarea, Table, Modal, ConfirmDialog, Dropdown, MultiSelect, DatePicker, Avatar } from '../components/ui.jsx'
+import { useQuickAdd } from '../components/QuickAdd.jsx'
 import { STATUSES, STATUS, TYPES, PRIORITIES, REPORTERS, TypeTag, PriorityTag, StatusTag, dur, clock, fmtDT } from '../lib/tickets.jsx'
 import { AttachPicker, sendForm, fileIcon } from './Tickets.jsx'
 
@@ -429,7 +430,9 @@ function EditTicket({ d, onClose, onSaved }) {
   const [employees, setEmployees] = useState([])
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  useEffect(() => { api('/tickets/options').then(x => setEmployees(x.employees)).catch(() => {}) }, [])
+  const loadEmployees = () => api('/tickets/options').then(x => setEmployees(x.employees)).catch(() => {})
+  useEffect(() => { loadEmployees() }, [])
+  const qa = useQuickAdd() // "+ Add new employee" inside the assignee list
   const set = (k, v) => setF(s => ({ ...s, [k]: v }))
   const submit = async e => {
     e.preventDefault()
@@ -453,12 +456,14 @@ function EditTicket({ d, onClose, onSaved }) {
           <DatePicker label="Due date (optional)" value={f.due_date} onChange={v => set('due_date', v || '')} />
         </div>
         <MultiSelect label="Assign to (optional)" value={f.assignee_ids} onChange={v => set('assignee_ids', v)} placeholder="Select employees"
-          options={employees.map(e => ({ value: e.id, label: e.role_name ? `${e.name} · ${e.role_name}` : e.name }))} />
+          options={employees.map(e => ({ value: e.id, label: e.role_name ? `${e.name} · ${e.role_name}` : e.name }))}
+          {...qa.props('employee', async id => { await loadEmployees(); setF(s => ({ ...s, assignee_ids: [...s.assignee_ids, id] })) })} />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</Button>
         </div>
       </form>
+      {qa.node}
     </Modal>
   )
 }

@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, MapPin, Clock, Search, CalendarDays, Users, Party
 import { api, fmtDate } from '../lib/api.js'
 import { toast } from '../lib/toast.js'
 import { Card, Pill, Button, PageHeader, Input, Textarea, Table, Modal, ConfirmDialog, Dropdown, DatePicker, TimeSelect, MultiSelect, Avatar, fmtTime } from '../components/ui.jsx'
+import { useQuickAdd } from '../components/QuickAdd.jsx'
 
 const STATUS = [
   { v: 'upcoming', label: 'Upcoming', tone: 'info' },
@@ -163,7 +164,9 @@ export default function Events() {
   )
 }
 
-function EventForm({ ev, types, employees, onClose, onSaved }) {
+function EventForm({ ev, types, employees: initialEmployees, onClose, onSaved }) {
+  const [employees, setEmployees] = useState(initialEmployees)
+  const qa = useQuickAdd() // "+ Add new employee" inside Participants
   const [f, setF] = useState(() => {
     const init = { ...blank, ...ev, employee_ids: ev.employee_ids || [] }
     for (const k of Object.keys(blank)) if (init[k] == null) init[k] = k === 'employee_ids' ? [] : ''
@@ -237,7 +240,8 @@ function EventForm({ ev, types, employees, onClose, onSaved }) {
 
           <MultiSelect label="Participants" req value={f.employee_ids} error={errors.employee_ids} onChange={v => set('employee_ids', v)}
             placeholder="Select employees" hint="Employees who attended (or are invited to) this event."
-            options={people.map(e => ({ value: e.id, label: e.name, sub: e.role_name || e.emp_no }))} />
+            options={people.map(e => ({ value: e.id, label: e.name, sub: e.role_name || e.emp_no }))}
+            {...qa.props('employee', async id => { const d = await api('/employees'); setEmployees(d.employees); setF(s => ({ ...s, employee_ids: [...s.employee_ids, id] })) })} />
 
           <Textarea label="Description / notes" value={f.description} onChange={e => set('description', e.target.value)} placeholder="Agenda, highlights, games played, food ordered…" />
 
@@ -252,6 +256,7 @@ function EventForm({ ev, types, employees, onClose, onSaved }) {
           <Button type="submit" variant="primary" disabled={busy}>{busy ? 'Saving…' : 'Save event'}</Button>
         </div>
       </form>
+      {qa.node}
     </Modal>
   )
 }

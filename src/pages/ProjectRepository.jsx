@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, ExternalLink, FolderGit2, Copy } from 'lucide-rea
 import { api, fmtDate } from '../lib/api.js'
 import { toast } from '../lib/toast.js'
 import { Card, Button, PageHeader, Input, Textarea, Table, Modal, ConfirmDialog, Dropdown } from '../components/ui.jsx'
+import { useQuickAdd } from '../components/QuickAdd.jsx'
 
 const blank = { project_id: '', drive_link: '', description: '' }
 const isLink = v => { try { return ['http:', 'https:'].includes(new URL(v).protocol) } catch { return false } }
@@ -104,7 +105,9 @@ export default function ProjectRepository() {
   )
 }
 
-function RepoForm({ item, options, onClose, onSaved }) {
+function RepoForm({ item, options: initialOptions, onClose, onSaved }) {
+  const [options, setOptions] = useState(initialOptions)
+  const qa = useQuickAdd() // "+ Add new project" inside the Project list
   const [f, setF] = useState(item)
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
@@ -129,13 +132,15 @@ function RepoForm({ item, options, onClose, onSaved }) {
   return (
     <Modal title={item.id ? 'Edit link' : 'Add link'} onClose={onClose} size="max-w-lg">
       <form onSubmit={submit} noValidate className="p-5 space-y-4">
-        <Dropdown label="Project" required value={f.project_id} error={errors.project_id} onChange={v => set('project_id', v)} placeholder="Select a project" options={options} />
+        <Dropdown label="Project" required value={f.project_id} error={errors.project_id} onChange={v => set('project_id', v)} placeholder="Select a project" options={options}
+          {...qa.props('project', async id => { const d = await api('/project-repositories/projects'); setOptions(d.projects.map(p => ({ value: p.id, label: p.status === 'active' ? p.name : `${p.name} (inactive)` }))); set('project_id', id) })} />
         <Input label="Drive link" req value={f.drive_link} error={errors.drive_link} onChange={e => set('drive_link', e.target.value)} placeholder="https://drive.google.com/…" />        <Textarea label="Description (optional)" rows={3} value={f.description} onChange={e => set('description', e.target.value)} maxLength={2000} placeholder="e.g. Design files and client documents" />
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
         </div>
       </form>
+      {qa.node}
     </Modal>
   )
 }

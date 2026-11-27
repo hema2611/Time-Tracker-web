@@ -64,7 +64,7 @@ export default function Projects() {
   )
 }
 
-function ProjectForm({ project, onClose, onSaved }) {
+export function ProjectForm({ project, onClose, onSaved }) {
   const [f, setF] = useState({ ...blank, ...project, client_name: project.client_name || '', address: project.address || '', contact_person: project.contact_person || '' })
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
@@ -80,9 +80,10 @@ function ProjectForm({ project, onClose, onSaved }) {
     if (Object.keys(errs).length) { setErrors(errs); return }
     setBusy(true)
     try {
+      let id = project.id
       if (project.id) { await api(`/project-master/${project.id}`, { method: 'PUT', body: f }); toast.success(`Project “${f.name}” updated.`) }
-      else { await api('/project-master', { method: 'POST', body: f }); toast.success(`Project “${f.name}” added.`) }
-      onSaved()
+      else { id = (await api('/project-master', { method: 'POST', body: f })).id; toast.success(`Project “${f.name}” added.`) }
+      onSaved(id)
     } catch (x) { setBusy(false); toast.error(x.message) }
   }
 

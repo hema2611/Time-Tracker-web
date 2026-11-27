@@ -1,19 +1,18 @@
 import { Fragment, useEffect, useState } from 'react'
-import { RefreshCw, Monitor, Download, ShieldAlert, Sparkles, Puzzle } from 'lucide-react'
+import { RefreshCw, Monitor, Download, ShieldAlert, Sparkles, Puzzle, MapPin } from 'lucide-react'
 import { api } from '../lib/api.js'
 import { useAuth } from '../auth.jsx'
-import { Card, Pill, PageHeader, Table, Kpi, Button } from '../components/ui.jsx'
+import { Card, Pill, PageHeader, Table, Button, Chip, StatusDot, Avatar, KpiCard, Drawer, ProgressRing, Skeleton, EmptyState } from '../components/ui.jsx'
 
-// Hours and breaks come from the desktop agent on each person's computer.
+// Attendance (DESIGN.md §8, design/tracker-light-prototype.html). Hours and breaks come from the desktop agent.
 const KIND = {
-  // Five clearly different colours: at desk, away work, idle, break, offline.
-  work: { bar: 'bg-cat-work', label: 'At desk' },
-  away_work: { bar: 'bg-cat-away', label: 'Away work (meeting, call…)' },
-  idle: { bar: 'bg-cat-idle', label: 'Idle' },
-  break: { bar: 'bg-cat-break', label: 'Break' },
-  offline: { bar: 'bg-cat-off', label: 'Offline' },
+  // Status colours (DESIGN.md §6): at desk ok, away work away, idle idle, break brk, offline off.
+  work: { bar: 'bg-ok', tone: 'ok', label: 'At desk' },
+  away_work: { bar: 'bg-away', tone: 'away', label: 'Away work' },
+  idle: { bar: 'bg-idle', tone: 'idle', label: 'Idle' },
+  break: { bar: 'bg-brk', tone: 'brk', label: 'Break' },
+  offline: { bar: 'bg-off', tone: 'off', label: 'Offline' },
 }
-const STATUS = { working: ['ok', 'Working'], idle: ['neutral', 'Idle'], on_break: ['risk', 'On break'], offline: ['neutral', 'Offline'] }
 
 const time = s => s ? new Date(s).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '–'
 // Time away: breaks, offline time, and work away from the desk (a meeting the person told the agent about).
@@ -26,78 +25,99 @@ const MapLink = ({ p }) => p?.lat !== undefined
 const Place = ({ p }) => (!p ? null : <span>{placeLine(p) || 'Location not available'}{p.lat !== undefined && <> · <MapLink p={p} /></>}</span>)
 const hm = m => m == null ? '–' : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`
 
-// One day as a bar: work / break / offline pieces on a time line.
-function DayBar({ pieces }) {
-  if (!pieces.length) return <div className="h-10 rounded-xl bg-slate-100 grid place-items-center text-xs text-slate-500">No activity recorded</div>
+// One day as a 38px bar: segments by status colour, hover for details, "Last seen" marker, axis fitted to the day.
+function DayBar({ pieces, lastSeen }) {
+  if (!pieces.length) return <div className="h-[38px] rounded-md bg-surface-2 grid place-items-center text-xs text-fg-3">No activity recorded</div>
   const H = 3600 * 1000
   const first = Date.parse(pieces[0].start), last = Date.parse(pieces[pieces.length - 1].end)
-  // Show whole hours around the day, at least 9 hours wide.
+  // Whole hours around the worked time (at least 4 hours wide).
   let from = Math.floor(first / H) * H, to = Math.ceil(last / H) * H
-  if (to - from < 9 * H) to = from + 9 * H
+  if (to - from < 4 * H) to = from + 4 * H
   const pct = t => ((t - from) / (to - from)) * 100
   const hours = []
   for (let t = from; t <= to; t += H) hours.push(t)
-  const step = hours.length > 14 ? 2 : 1
+  const step = hours.length > 12 ? 2 : 1
+  const seen = lastSeen && Date.parse(lastSeen)
   return (
     <div>
-      <div className="relative h-10 rounded-xl bg-slate-100 overflow-hidden">
-        {pieces.map((p, i) => (
-          <div key={i} className={`absolute top-0 bottom-0 ${KIND[p.kind].bar}`}
-            style={{ left: `${pct(Date.parse(p.start))}%`, width: `${Math.max(pct(Date.parse(p.end)) - pct(Date.parse(p.start)), 0.3)}%` }}
-            title={`${KIND[p.kind].label}${p.reason ? ` (${p.reason})` : ''}: ${time(p.start)} – ${time(p.end)}`} />
-        ))}
+      <div className="relative h-[38px] rounded-md bg-surface-2">
+        <div className="absolute inset-0 rounded-md overflow-hidden">
+          {pieces.map((p, i) => (
+            <div key={i} className={`group absolute top-0 bottom-0 ${KIND[p.kind].bar}`}
+              style={{ left: `${pct(Date.parse(p.start))}%`, width: `${Math.max(pct(Date.parse(p.end)) - pct(Date.parse(p.start)), 0.3)}%` }}
+              title={`${KIND[p.kind].label}${p.reason ? ` (${p.reason})` : ''} · ${time(p.start)}–${time(p.end)}`} />
+          ))}
+        </div>
+        {seen && seen >= from && seen <= to && (
+          <div className="absolute -top-1.5 -bottom-1.5 w-0.5 bg-fg" style={{ left: `${pct(seen)}%` }}>
+            <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] text-fg-2 whitespace-nowrap">Last seen</span>
+          </div>
+        )}
       </div>
-      <div className="relative h-5 mt-1 text-[11px] text-slate-500">
+      <div className="relative h-5 mt-1.5 text-[11px] text-fg-3">
         {hours.map((t, i) => i % step === 0 && (
-          <span key={t} className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `${pct(t)}%` }}>
+          <span key={t} className={`absolute whitespace-nowrap ${i === 0 ? '' : i === hours.length - 1 ? '-translate-x-full' : '-translate-x-1/2'}`} style={{ left: `${pct(t)}%` }}>
             {new Date(t).toLocaleTimeString([], { hour: 'numeric' })}
           </span>
         ))}
-      </div>
-      <div className="flex flex-wrap gap-4 text-xs text-slate-500 mt-2">
-        {Object.values(KIND).map(k => <span key={k.label} className="flex items-center gap-1.5"><span className={`w-3 h-3 rounded ${k.bar}`} />{k.label}</span>)}
       </div>
     </div>
   )
 }
 
-// The 9-hour office day as a ring, the same picture the desktop agent shows:
-// violet = at desk, teal = away work, filling clockwise toward the target.
-function DayRing({ d, size = 148 }) {
+// The 9-hour office day as a thin gradient ring.
+function DayRing({ d, size = 128 }) {
   const target = d.officeDayMinutes || 540
-  const r = 54, c = 2 * Math.PI * r
-  const desk = Math.min(d.deskWorkMinutes, target) / target
-  const awayW = Math.min(d.awayWorkMinutes, Math.max(0, target - d.deskWorkMinutes)) / target
   const done = d.workMinutes >= target
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg viewBox="0 0 128 128" className="w-full h-full -rotate-90" aria-hidden="true">
-        <circle cx="64" cy="64" r={r} fill="none" stroke="var(--color-elevated)" strokeWidth="10" />
-        <circle cx="64" cy="64" r={r} fill="none" stroke="var(--color-cat-work)" strokeWidth="10" strokeLinecap="round"
-          strokeDasharray={`${desk * c} ${c}`} style={{ filter: 'drop-shadow(0 0 6px rgb(124 92 224 / .5))' }} />
-        {awayW > 0 && <circle cx="64" cy="64" r={r} fill="none" stroke="var(--color-cat-away)" strokeWidth="10"
-          strokeDasharray={`${awayW * c} ${c}`} strokeDashoffset={-desk * c} />}
-      </svg>
-      <div className="absolute inset-0 grid place-items-center text-center">
-        <div>
-          <div className="text-2xl font-semibold text-fg tabular-nums">{hm(d.workMinutes)}</div>
-          <div className="text-[11px] uppercase tracking-wider text-fg-3">of {Math.round(target / 60)}h day</div>
-          <div className={`text-xs mt-0.5 ${done ? 'text-ok' : 'text-fg-2'}`}>{done ? 'Day complete' : `${hm(d.remainingMinutes)} left`}</div>
-        </div>
-      </div>
-    </div>
+    <ProgressRing value={d.workMinutes / target} size={size}>
+      <div className="font-display font-light text-2xl text-fg">{hm(d.workMinutes)}</div>
+      <div className="text-[10px] uppercase tracking-[0.18em] text-fg-3">of {Math.round(target / 60)}h day</div>
+      <div className={`text-[11px] mt-0.5 ${done ? 'text-ok' : 'text-fg-3'}`}>{done ? 'Day complete' : `${hm(d.remainingMinutes)} left`}</div>
+    </ProgressRing>
   )
 }
 
 const EXT = { on: ['ok', 'Extension on'], off: ['late', 'Extension off'], other: ['risk', 'Unsupported browser'] }
 
+// Where the day's time went: one proportional bar and short "● Label 1h 15m" chips. Zero values fade out.
+function TimeSplit({ d }) {
+  const parts = [
+    { key: 'desk', label: 'At desk', min: d.deskWorkMinutes, bar: 'bg-ok',
+      tip: 'Working at the computer' },
+    { key: 'away', label: 'Away work', min: d.awayWorkMinutes, bar: 'bg-away',
+      tip: d.awayWork?.length ? d.awayWork.map(a => `${a.reason} ${hm(a.minutes)}`).join(', ') : 'Meetings, calls, work away from the desk' },
+    { key: 'idle', label: 'Idle', min: d.idleMinutes, bar: 'bg-idle', tip: 'PC on, no activity', warn: d.idleMinutes > 60 },
+    { key: 'break', label: 'Breaks', min: d.breakMinutes, bar: 'bg-brk', tip: 'Locked or away', warn: d.breakMinutes > 90 },
+    { key: 'off', label: 'Offline', min: d.offlineMinutes, bar: 'bg-off', tip: 'Agent off or PC off during the day', warn: d.offlineMinutes > 0 },
+  ]
+  const total = parts.reduce((s, p) => s + p.min, 0)
+  return (
+    <div>
+      <div className="flex h-3 rounded-full overflow-hidden bg-surface-2">
+        {total > 0 && parts.filter(p => p.min > 0).map(p => (
+          <div key={p.key} className={p.bar} style={{ width: `${(p.min / total) * 100}%` }} title={`${p.label} ${hm(p.min)}`} />
+        ))}
+      </div>
+      <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+        {parts.map(p => (
+          <span key={p.key} title={p.tip} className={`inline-flex items-center gap-1.5 ${p.min ? 'text-fg' : 'text-fg-3 opacity-60'}`}>
+            <span className={`w-2.5 h-2.5 rounded-full ${p.bar}`} />
+            {p.label} <b className={`font-mono ${p.warn ? 'text-amber-700' : ''}`}>{hm(p.min)}</b>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // Day / Month switch shown in the page header of both views.
 function Tabs({ tab, setTab, admin }) {
   return (
-    <div className="flex rounded-xl border border-slate-200 p-0.5" role="tablist">
+    <div className="flex rounded-md border border-line bg-surface p-1 gap-0.5" role="tablist">
       {[['day', 'Day'], ['month', 'Month'], ...(admin ? [['rules', 'Site rules']] : [])].map(([k, l]) => (
         <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-          className={`px-3 py-1 rounded-lg text-sm ${tab === k ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-500'}`}>{l}</button>
+          className={`px-3 py-1.5 rounded-md text-sm transition duration-150 ${tab === k ? 'bg-violet-tint text-violet-strong font-medium' : 'text-fg-2 hover:text-fg'}`}>{l}</button>
       ))}
     </div>
   )
@@ -130,11 +150,11 @@ function MonthView({ tabs }) {
         actions={<>
           {tabs}
           <input type="month" value={month} max={data?.today.slice(0, 7)} onChange={e => e.target.value && setMonth(e.target.value)}
-            className="border border-slate-200 rounded-xl px-3 py-1.5 bg-surface" aria-label="Month" />
+            className="border border-line rounded-md px-3 py-2 bg-surface" aria-label="Month" />
           {month && <a href={`/api/attendance/month?month=${month}&format=xlsx`} download
-            className="rail text-ink font-medium rounded-xl px-3.5 py-1.5 inline-flex items-center gap-1.5"><Download size={15} />Excel</a>}
+            className="grad-brand text-white font-medium rounded-md px-3.5 py-1.5 inline-flex items-center gap-1.5"><Download size={15} />Excel</a>}
         </>} />
-      {err && <p className="text-red-600 mb-4" role="alert">{err}</p>}
+      {err && <p className="text-off mb-4" role="alert">{err}</p>}
       {data && (
         <Card>
           <Table head={['Name', 'Days worked', 'Working (total)', 'At desk', 'Away work', 'Idle', 'Breaks', 'Offline', 'Unproductive', 'Avg per day', '']}>
@@ -156,9 +176,9 @@ function MonthView({ tabs }) {
                   </td>
                 </tr>
                 {open === p.userId && data.rows.filter(r => r.userId === p.userId).map(r => (
-                  <tr key={r.date} className="bg-slate-100/40 text-sm">
-                    <td className="pl-8 text-slate-600">{new Date(`${r.date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</td>
-                    <td className="text-slate-500 tabular-nums">{r.login || '–'} – {r.logout || '–'}</td>
+                  <tr key={r.date} className="bg-surface-2 text-sm">
+                    <td className="pl-8 text-fg-2">{new Date(`${r.date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</td>
+                    <td className="text-fg-3 tabular-nums">{r.login || '–'} – {r.logout || '–'}</td>
                     <td className="tabular-nums">{hm(r.workMinutes)}</td>
                     <td className="tabular-nums">{hm(r.deskWorkMinutes)}</td>
                     <td className="tabular-nums text-cat-away" title={r.awayWork?.map(a => `${a.reason} ${hm(a.minutes)}`).join('\n')}>{hm(r.awayWorkMinutes)}</td>
@@ -173,7 +193,7 @@ function MonthView({ tabs }) {
               </Fragment>
             ))}
           </Table>
-          {!data.rows.length && <p className="p-4 text-sm text-slate-500">No activity recorded in this month yet.</p>}
+          {!data.rows.length && <p className="p-4 text-sm text-fg-3">No activity recorded in this month yet.</p>}
         </Card>
       )}
     </>
@@ -185,17 +205,17 @@ const HOW = { active: 'in front', playing: 'video playing', visible: 'on screen'
 function Unproductive({ d }) {
   if (!d.unproductive?.length) return null
   return (
-    <div className="mt-4 rounded-xl border border-rose-300/30 bg-rose-50/40 px-4 py-3">
+    <div className="mt-4 rounded-xl border border-line bg-red-50 px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="text-sm font-medium text-slate-900">Unproductive sites and apps · {hm(d.unproductiveMinutes)}</div>
-        <div className="text-xs text-slate-500">Shown for review; not taken off working time</div>
+        <div className="text-sm font-medium text-fg">Unproductive sites and apps · {hm(d.unproductiveMinutes)}</div>
+        <div className="text-xs text-fg-3">Shown for review; not taken off working time</div>
       </div>
-      <ul className="mt-2 divide-y divide-slate-100">
+      <ul className="mt-2 divide-y divide-line">
         {d.unproductive.map(u => (
           <li key={u.label} className="flex flex-wrap justify-between gap-2 py-1.5 text-sm">
-            <span><span className="inline-block w-2.5 h-2.5 rounded-full mr-2 bg-rose-500" />{u.label}
-              <span className="ml-2 text-xs text-slate-500">{u.how.map(h => HOW[h] || h).join(', ')}</span></span>
-            <span className="tabular-nums text-slate-600">{hm(u.minutes)}{u.duringWorkMinutes ? <span className="text-xs text-slate-500"> · {hm(u.duringWorkMinutes)} while counted as work</span> : ''}</span>
+            <span><span className="inline-block w-2.5 h-2.5 rounded-full mr-2 bg-off" />{u.label}
+              <span className="ml-2 text-xs text-fg-3">{u.how.map(h => HOW[h] || h).join(', ')}</span></span>
+            <span className="tabular-nums text-fg-2">{hm(u.minutes)}{u.duringWorkMinutes ? <span className="text-xs text-fg-3"> · {hm(u.duringWorkMinutes)} while counted as work</span> : ''}</span>
           </li>
         ))}
       </ul>
@@ -215,24 +235,24 @@ function RulesView({ tabs }) {
     try { await api('/site-rules', { method: 'POST', body: f }); setF({ ...f, pattern: '', label: '' }); load() } catch (x) { setErr(x.message) }
   }
   const remove = async id => { try { await api(`/site-rules/${id}`, { method: 'DELETE' }); load() } catch (x) { setErr(x.message) } }
-  const field = 'border border-slate-200 rounded-xl px-3 py-1.5 bg-surface'
+  const field = 'border border-line rounded-md px-3 py-2 bg-surface'
   return (
     <>
       <PageHeader title="Attendance" sub="Site rules: which websites and programs count as unproductive" actions={tabs} />
       <Card className="p-4 mb-4">
         <form onSubmit={add} className="flex flex-wrap items-end gap-2">
-          <label className="text-xs text-slate-600">Type<br />
+          <label className="text-xs text-fg-2">Type<br />
             <select className={field} value={f.kind} onChange={e => setF({ ...f, kind: e.target.value })}><option value="site">Website</option><option value="app">Program</option></select></label>
-          <label className="text-xs text-slate-600">{f.kind === 'site' ? 'Website (e.g. youtube.com)' : 'Program name (e.g. steam)'}<br />
+          <label className="text-xs text-fg-2">{f.kind === 'site' ? 'Website (e.g. youtube.com)' : 'Program name (e.g. steam)'}<br />
             <input className={field} required value={f.pattern} onChange={e => setF({ ...f, pattern: e.target.value })} placeholder={f.kind === 'site' ? 'youtube.com' : 'steam'} /></label>
-          <label className="text-xs text-slate-600">Shown as<br />
+          <label className="text-xs text-fg-2">Shown as<br />
             <input className={field} required value={f.label} onChange={e => setF({ ...f, label: e.target.value })} placeholder="YouTube" /></label>
-          <label className="text-xs text-slate-600">Counts as<br />
+          <label className="text-xs text-fg-2">Counts as<br />
             <select className={field} value={f.rating} onChange={e => setF({ ...f, rating: e.target.value })}><option value="unproductive">Unproductive</option><option value="productive">Productive</option></select></label>
           <Button variant="primary" type="submit">Add</Button>
         </form>
-        {err && <p className="text-red-600 text-sm mt-2" role="alert">{err}</p>}
-        <p className="text-xs text-slate-500 mt-2">Only sites and programs on this list are ever recorded (name and minutes). Agents pick up changes within an hour.</p>
+        {err && <p className="text-off text-sm mt-2" role="alert">{err}</p>}
+        <p className="text-xs text-fg-3 mt-2">Only sites and programs on this list are ever recorded (name and minutes). Agents pick up changes within an hour.</p>
       </Card>
       {rules && (
         <Card>
@@ -240,7 +260,7 @@ function RulesView({ tabs }) {
             {rules.map(r => (
               <tr key={r.id}>
                 <td className="font-medium">{r.label}</td>
-                <td className="text-slate-500">{r.kind === 'site' ? 'Website' : 'Program'}</td>
+                <td className="text-fg-3">{r.kind === 'site' ? 'Website' : 'Program'}</td>
                 <td className="tabular-nums">{r.pattern}</td>
                 <td><Pill tone={r.rating === 'unproductive' ? 'late' : 'ok'}>{r.rating === 'unproductive' ? 'Unproductive' : 'Productive'}</Pill></td>
                 <td className="text-right"><Button variant="ghost" onClick={() => remove(r.id)}>Remove</Button></td>
@@ -266,32 +286,166 @@ function OfficeNetworks() {
     try { await api('/office-networks', { method: 'POST', body: f }); setF({ ...f, value: '' }); load() } catch (x) { setErr(x.message) }
   }
   const remove = async id => { try { await api(`/office-networks/${id}`, { method: 'DELETE' }); load() } catch (x) { setErr(x.message) } }
-  const field = 'border border-slate-200 rounded-xl px-3 py-1.5 bg-surface'
+  const field = 'border border-line rounded-md px-3 py-2 bg-surface'
   return (
     <Card className="p-4 mt-4">
-      <h2 className="font-semibold text-slate-900">Office networks</h2>
-      <p className="text-xs text-slate-500 mb-3">Check-in and check-out show <b>Office</b> when the computer is on one of these, otherwise <b>Remote</b>. Leave empty to show only the Wi-Fi name and place.</p>
+      <h2 className="font-semibold text-fg">Office networks</h2>
+      <p className="text-xs text-fg-3 mb-3">Check-in and check-out show <b>Office</b> when the computer is on one of these, otherwise <b>Remote</b>. Leave empty to show only the Wi-Fi name and place.</p>
       <form onSubmit={add} className="flex flex-wrap items-end gap-2">
-        <label className="text-xs text-slate-600">Type<br />
+        <label className="text-xs text-fg-2">Type<br />
           <select className={field} value={f.kind} onChange={e => setF({ ...f, kind: e.target.value })}><option value="wifi">Wi-Fi name</option><option value="ip">Internet address</option></select></label>
-        <label className="text-xs text-slate-600">{f.kind === 'wifi' ? 'Wi-Fi name (e.g. ImagiNET Hub 2)' : 'Office internet address'}<br />
+        <label className="text-xs text-fg-2">{f.kind === 'wifi' ? 'Wi-Fi name (e.g. ImagiNET Hub 2)' : 'Office internet address'}<br />
           <input className={field} required value={f.value} onChange={e => setF({ ...f, value: e.target.value })} /></label>
-        <label className="text-xs text-slate-600">Office<br />
+        <label className="text-xs text-fg-2">Office<br />
           <input className={field} required value={f.label} onChange={e => setF({ ...f, label: e.target.value })} placeholder="Chennai office" /></label>
         <Button variant="primary" type="submit">Add</Button>
       </form>
-      {err && <p className="text-red-600 text-sm mt-2" role="alert">{err}</p>}
+      {err && <p className="text-off text-sm mt-2" role="alert">{err}</p>}
       {list?.length > 0 && (
-        <ul className="mt-3 divide-y divide-slate-100">
+        <ul className="mt-3 divide-y divide-line">
           {list.map(n => (
             <li key={n.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
-              <span><b>{n.label}</b> <span className="text-slate-500">· {n.kind === 'wifi' ? 'Wi-Fi' : 'Internet address'} {n.value}</span></span>
+              <span><b>{n.label}</b> <span className="text-fg-3">· {n.kind === 'wifi' ? 'Wi-Fi' : 'Internet address'} {n.value}</span></span>
               <Button variant="ghost" onClick={() => remove(n.id)}>Remove</Button>
             </li>
           ))}
         </ul>
       )}
     </Card>
+  )
+}
+
+// Live status → status token + label (DESIGN.md §6).
+const LIVE = { working: ['ok', 'Working'], idle: ['idle', 'Idle'], on_break: ['brk', 'On break'], offline: ['off', 'Offline'] }
+
+// One person in the team list: who, in → out, progress to 9 h, and anything to check.
+function TeamRow({ p, isToday, active, onOpen }) {
+  const target = p.officeDayMinutes || 540
+  const st = !p.hasAgent ? ['none', 'No agent yet'] : !p.firstIn ? ['none', 'Not started'] : isToday && p.status ? LIVE[p.status] : ['ok', 'Worked']
+  return (
+    <li>
+      <button type="button" onClick={onOpen}
+        className={`w-full text-left px-5 py-3.5 grid gap-x-6 gap-y-2 items-center sm:grid-cols-[2.2fr_1.6fr_2.4fr_1fr] hover:bg-surface-2 transition duration-150 ${active ? 'bg-surface-2' : ''}`}>
+        <div className="flex items-center gap-3 min-w-0">
+          <Avatar name={p.name} size={34} />
+          <div className="min-w-0">
+            <div className="font-medium text-fg truncate">{p.name}</div>
+            <div className="flex items-center gap-1.5 text-xs text-fg-3"><StatusDot tone={st[0]} live={isToday && p.status === 'working'} />{st[1]}</div>
+          </div>
+        </div>
+        <div className="min-w-0">
+          <div className="font-mono font-light text-[13px] text-fg whitespace-nowrap">{p.firstIn ? <>{time(p.firstIn)} → {isToday && p.stillWorking ? 'now' : time(p.lastOut)}</> : 'Not started'}</div>
+          {p.location?.in?.place && <div className="text-xs text-fg-3 truncate">{p.location.in.label || p.location.in.place}</div>}
+        </div>
+        <div className="min-w-0">
+          {p.firstIn ? <>
+            <div className="flex items-baseline justify-between gap-2"><span className="font-mono text-[13px] text-fg">{hm(p.workMinutes)}</span><span className="text-[11px] text-fg-3">of {Math.round(target / 60)}h</span></div>
+            <div className="mt-1.5 h-[5px] rounded-full bg-surface-2 overflow-hidden flex" title={`At desk ${hm(p.deskWorkMinutes)} · Away work ${hm(p.awayWorkMinutes)}`}>
+              <i className="block h-full bg-ok" style={{ width: `${Math.min(100, p.deskWorkMinutes / target * 100)}%` }} />
+              <i className="block h-full bg-away" style={{ width: `${Math.min(100, p.awayWorkMinutes / target * 100)}%` }} />
+            </div>
+          </> : !p.hasAgent ? <span className="text-xs font-medium text-violet">Install agent →</span> : <span className="text-fg-3">–</span>}
+        </div>
+        <div className="flex flex-wrap gap-1.5 sm:justify-end">
+          {p.unproductiveMinutes > 0 && <Chip tone="bad" title={unpTitle(p.unproductive)}>Unproductive {hm(p.unproductiveMinutes)}</Chip>}
+          {p.flags?.length > 0 && <Chip tone="warn" title={p.flags.map(f => f.text).join('\n')}>{p.flags.length} to review</Chip>}
+        </div>
+      </button>
+    </li>
+  )
+}
+
+// One person's day: ring, in → out, one legend, timeline, time away, devices.
+function DayDetail({ data, lead, isToday }) {
+  const d = data.day
+  const [showDev, setShowDev] = useState(false)
+  const newest = data.devices.map(v => v.version).filter(Boolean).sort().pop()
+  const old = data.devices.filter(v => v.version && v.version !== newest).length
+  return (
+    <>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-6 my-5">
+        <DayRing d={d} />
+        <div className="min-w-0 space-y-3">
+          <div className="font-display font-light text-[28px] text-fg">{time(d.firstIn)} → {isToday && d.stillWorking ? 'now' : time(d.lastOut)}</div>
+          {d.location?.in && (
+            <Chip title={placeLine(d.location.in)}>
+              <MapPin size={12} strokeWidth={1.5} />{d.location.in.place ? (d.location.in.label ? `${d.location.in.place} · ${d.location.in.label}` : d.location.in.place) : (d.location.in.wifi ? `Wi-Fi ${d.location.in.wifi}` : 'Location unknown')}
+              {d.location.in.lat !== undefined && <MapLink p={d.location.in} />}
+            </Chip>
+          )}
+          <TimeSplit d={d} />
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {d.claudeMinutes > 0 && <Chip title="Claude Code was working; counted as work"><Sparkles size={12} strokeWidth={1.5} />Claude {hm(d.claudeMinutes)}</Chip>}
+        {d.extension && <Chip tone={d.extension === 'on' ? 'neutral' : 'warn'}><Puzzle size={12} strokeWidth={1.5} />{EXT[d.extension][1]}</Chip>}
+        {lead && d.flags?.length > 0 && (
+          <details className="group basis-full">
+            <summary className="list-none cursor-pointer w-fit"><Chip tone="warn"><ShieldAlert size={12} strokeWidth={1.5} />{d.flags.length === 1 ? '1 thing to look at' : `${d.flags.length} things to look at`}</Chip></summary>
+            <ul className="mt-2 text-sm text-fg-2 space-y-1">{d.flags.map(f => <li key={f.code}>• {f.text}</li>)}</ul>
+            <p className="text-xs text-fg-3 mt-1">Hints from the activity pattern, not proof. Ask the person if unsure.</p>
+          </details>
+        )}
+      </div>
+      <div className="mt-7"><DayBar pieces={d.pieces} lastSeen={isToday ? d.lastOut : null} /></div>
+      <Unproductive d={d} />
+      {d.pieces.some(away) && (
+        <Card className="mt-5 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-line text-sm font-medium text-fg">Time away from the desk ({d.pieces.filter(away).length})</div>
+          <ul className="divide-y divide-line">
+            {d.pieces.filter(away).map((p, i) => (
+              <li key={i} className="flex flex-wrap justify-between gap-3 px-5 py-3 text-sm">
+                <span className="flex items-center gap-2 text-fg"><StatusDot tone={KIND[p.kind].tone} />{p.reason || KIND[p.kind].label}
+                  {p.kind === 'away_work' && <Chip className="!py-0.5">counted as work</Chip>}</span>
+                <span className="font-mono font-light text-[13px] text-fg-2">{time(p.start)} – {time(p.end)} · {hm(Math.round((Date.parse(p.end) - Date.parse(p.start)) / 60000))}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+      {!data.devices.length
+        ? <p className="mt-5 text-sm text-amber-700 bg-amber-50 rounded-md px-3 py-2">No computer is signed in to the desktop agent for {data.person.name} yet, so nothing is recorded.</p>
+        : <div className="mt-5 pt-3.5 border-t border-line text-xs text-fg-2">
+            {data.devices.length} {data.devices.length === 1 ? 'device' : 'devices'}
+            {old > 0 && <> · <span className="text-amber-700 font-medium">{old} outdated</span></>}
+            {' · '}<button type="button" className="text-violet hover:underline" onClick={() => setShowDev(s => !s)}>{showDev ? 'Hide' : 'Details'}</button>
+            {showDev && <div className="mt-2 leading-7 text-fg-3">{data.devices.map((v, i) => (
+              <div key={`${v.name}-${i}`} className="flex items-center gap-1.5"><Monitor size={12} strokeWidth={1.5} />{v.name}{v.version ? ` · agent ${v.version}` : ''} · last seen {v.lastSeen ? new Date(v.lastSeen.replace(' ', 'T') + 'Z').toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never'}</div>
+            ))}</div>}
+          </div>}
+    </>
+  )
+}
+
+// ‹ Fri, 27 Nov 2026 › Today — the date itself opens the calendar to pick any day.
+function DateStepper({ date, today, onChange }) {
+  const shift = n => { const t = new Date(`${date}T00:00:00`); t.setDate(t.getDate() + n); const v = t.toLocaleDateString('en-CA'); if (v <= today) onChange(v) }
+  const label = date && new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  const btn = 'px-3 py-1.5 rounded-md text-sm text-fg-2 hover:bg-violet-tint transition duration-150 disabled:opacity-40 disabled:hover:bg-transparent'
+  return (
+    <div className="flex items-center gap-1 bg-surface border border-line rounded-md p-1 shadow-card">
+      <button type="button" className={btn} onClick={() => shift(-1)} aria-label="Previous day">‹</button>
+      <label className="relative px-2 min-w-[140px] text-center font-medium text-fg cursor-pointer">{label}
+        <input type="date" value={date} max={today} onChange={e => e.target.value && onChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" aria-label="Pick a day" />
+      </label>
+      <button type="button" className={btn} onClick={() => shift(1)} disabled={date >= today} aria-label="Next day">›</button>
+      <button type="button" className={`${btn} !text-violet`} onClick={() => onChange(today)} disabled={date === today}>Today</button>
+    </div>
+  )
+}
+
+// Five numbers on top of the team list.
+function Kpis({ people, isToday }) {
+  const started = people.filter(p => p.firstIn)
+  const n = s => started.filter(p => p.status === s).length
+  const avg = started.length ? Math.round(started.reduce((s, p) => s + p.workMinutes, 0) / started.length) : null
+  const list = isToday
+    ? [['Present', n('working'), 'ok'], ['Away', n('on_break') + n('idle'), 'away'], ['Not started', people.length - started.length, 'none'], ['Offline', n('offline'), 'off'], ['Avg. hours', hm(avg)]]
+    : [['Worked', started.length, 'ok'], ['Did not work', people.length - started.length, 'none'], ['Avg. hours', hm(avg)]]
+  return (
+    <div className={`grid grid-cols-2 gap-3 mb-5 ${isToday ? 'md:grid-cols-5' : 'md:grid-cols-3'}`}>
+      {list.map(([l, v, dot]) => <KpiCard key={l} label={l} value={v} dot={dot} />)}
+    </div>
   )
 }
 
@@ -324,7 +478,12 @@ function DayView({ tabs }) {
 
   const d = data?.day
   const isToday = data && data.date === data.today
-  const mine = data && data.person.id === user.id
+  const mine = data && data.person?.id === user.id
+  const untracked = data && data.tracked === false // admin: no day of their own, only the team
+  const dayLabel = data && new Date(`${data.date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
+  const closeDrawer = () => setWho(user.id)
+  const drawerOpen = !!(data?.person && who !== user.id && data.person.id === who)
+  const liveChip = isToday && d && <Chip><StatusDot tone={LIVE[d.status][0]} live={d.status === 'working'} />{LIVE[d.status][1]}</Chip>
 
   return (
     <>
@@ -332,131 +491,55 @@ function DayView({ tabs }) {
         sub="Login, logout and breaks, recorded by the desktop agent on each computer."
         actions={<>
           {tabs}
-          <input type="date" value={date} max={data?.today} onChange={e => setDate(e.target.value)}
-            className="border border-slate-200 rounded-xl px-3 py-1.5 bg-surface" aria-label="Day" />
-          <Button onClick={load} disabled={busy} title="Refresh"><RefreshCw size={15} className={busy ? 'animate-spin' : ''} /></Button>
+          {data && <DateStepper date={date} today={data.today} onChange={setDate} />}
+          <Button variant="ghost" onClick={load} disabled={busy} title="Refresh" aria-label="Refresh"><RefreshCw size={16} strokeWidth={1.5} className={busy ? 'animate-spin' : ''} /></Button>
         </>} />
 
-      {err && <p className="text-red-600 mb-4" role="alert">{err}</p>}
+      {err && <p className="text-off mb-4" role="alert">{err}</p>}
+
+      {!data && !err && (
+        <div className="space-y-3" aria-label="Loading">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">{[0, 1, 2, 3, 4].map(i => <Skeleton key={i} className="h-[84px] rounded-lg" />)}</div>
+          <Skeleton className="h-64 rounded-lg" />
+        </div>
+      )}
 
       {data && (
         <>
-          <Card className="p-5 mb-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <div>
-                <h2 className="font-semibold text-slate-900">{mine ? 'My day' : data.person.name}</h2>
-                <p className="text-xs text-slate-500">
-                  {new Date(`${data.date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
-                  {isToday && d.stillWorking && ' · still working'}
-                </p>
+          {team && <Kpis people={team.people} isToday={isToday} />}
+
+          {/* Your own day (tracked roles) stays on the page. */}
+          {!untracked && mine && (
+            <Card className="p-6 mb-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-[26px] leading-tight">My day</h2>
+                  <p className="text-xs text-fg-3">{dayLabel}{isToday && d.stillWorking && ' · still working'}</p>
+                </div>
+                {liveChip}
               </div>
-              <div className="flex items-center gap-2">
-                {isToday && <Pill tone={STATUS[d.status][0]}>{STATUS[d.status][1]}</Pill>}
-                {!mine && <Button variant="ghost" onClick={() => setWho(user.id)}>Back to my day</Button>}
-              </div>
-            </div>
-
-            <div className="flex flex-col lg:flex-row gap-5 mb-5">
-            <div className="flex lg:flex-col items-center gap-4 lg:w-44">
-              <DayRing d={d} />
-              <div className="flex flex-col gap-1.5 text-xs">
-                {d.claudeMinutes > 0 && <span className="inline-flex items-center gap-1.5 text-violet-light"><Sparkles size={13} />Claude {hm(d.claudeMinutes)}</span>}
-                {d.extension && <Pill tone={EXT[d.extension][0]}><span className="inline-flex items-center gap-1"><Puzzle size={12} />{EXT[d.extension][1]}</span></Pill>}
-              </div>
-            </div>
-            <div className="flex-1 grid gap-3 grid-cols-2 sm:grid-cols-4 content-start">
-              <Kpi label="Login" value={time(d.firstIn)} note={<Place p={d.location?.in} />} />
-              <Kpi label="Logout" value={isToday && d.stillWorking ? 'Now' : time(d.lastOut)} note={<Place p={d.location?.out} />} />
-              <Kpi label="Working time (total)" value={hm(d.workMinutes)} note={`At desk ${hm(d.deskWorkMinutes)}`} />
-              <Kpi label="Away work" value={hm(d.awayWorkMinutes)}
-                note={d.awayWork?.length ? d.awayWork.map(a => `${a.reason} ${hm(a.minutes)}`).join(' · ') : 'Meetings, calls, work away'} />
-              <Kpi label="Idle" value={hm(d.idleMinutes)} tone={d.idleMinutes > 60 ? 'warn' : undefined} note="PC on, no activity" />
-              <Kpi label="Breaks" value={hm(d.breakMinutes)} tone={d.breakMinutes > 90 ? 'warn' : undefined} note={d.breakMinutes > 90 ? 'Over 1h 30m' : undefined} />
-              <Kpi label="Offline / agent off" value={hm(d.offlineMinutes)} tone={d.offlineMinutes ? 'warn' : undefined} />
-              <Kpi label="With Claude" value={hm(d.claudeMinutes)} note="Claude Code working; counted as work" />
-            </div>
-            </div>
-
-            {lead && d.flags?.length > 0 && (
-              <div className="mb-4 rounded-xl border border-amber-300/40 bg-amber-50 px-4 py-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-amber-800"><ShieldAlert size={16} />Worth a closer look</div>
-                <ul className="mt-1 list-disc pl-6 text-sm text-amber-800">{d.flags.map(f => <li key={f.code}>{f.text}</li>)}</ul>
-                <p className="mt-1 text-xs text-amber-700">These are hints from the activity pattern, not proof.</p>
-              </div>
-            )}
-
-            <DayBar pieces={d.pieces} />
-            <Unproductive d={d} />
-
-            {d.pieces.some(away) && (
-              <details className="mt-4" open>
-                <summary className="cursor-pointer text-sm text-slate-600">Time away from the desk ({d.pieces.filter(away).length})</summary>
-                <ul className="mt-2 divide-y divide-slate-100">
-                  {d.pieces.filter(away).map((p, i) => (
-                    <li key={i} className="flex justify-between gap-3 py-2 text-sm">
-                      <span>
-                        <span className={`inline-block w-2.5 h-2.5 rounded-full mr-2 ${KIND[p.kind].bar}`} />{p.reason || KIND[p.kind].label}
-                        {p.kind === 'away_work' && <span className="ml-2 text-xs text-cat-away">away work, counted as work</span>}
-                      </span>
-                      <span className="text-slate-500 tabular-nums">{time(p.start)} – {time(p.end)} · {hm(Math.round((Date.parse(p.end) - Date.parse(p.start)) / 60000))}</span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
-
-            {!data.devices.length && (
-              <p className="mt-4 text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-                No computer is signed in to the desktop agent for {mine ? 'you' : data.person.name} yet, so nothing is recorded.
-              </p>
-            )}
-            {data.devices.length > 0 && (
-              <p className="mt-4 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
-                {data.devices.map(v => <span key={v.name} className="flex items-center gap-1"><Monitor size={13} />{v.name}{v.version ? ` · agent ${v.version}` : ''} · last seen {v.lastSeen ? new Date(v.lastSeen.replace(' ', 'T') + 'Z').toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never'}</span>)}
-              </p>
-            )}
-          </Card>
-
-          {team && (
-            <Card>
-              <div className="px-4 pt-4 pb-2">
-                <h2 className="font-semibold text-slate-900">{isToday ? 'Team now' : 'Team on this day'}</h2>
-                <p className="text-xs text-slate-500">Click a name to see their day.</p>
-              </div>
-              <Table head={['Name', ...(isToday ? ['Now'] : []), 'Login', 'Logout', 'Working (total)', 'At desk', 'Away work', 'With Claude', 'Idle', 'Breaks', 'Offline', 'Unproductive', 'Location', 'Checks']}>
-                {team.people.map(p => (
-                  <tr key={p.id} className={p.id === who ? 'bg-slate-100/60' : ''}>
-                    <td>
-                      <button className="font-medium text-left hover:underline" onClick={() => { setWho(p.id); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>{p.name}</button>
-                      {!p.hasAgent && <div className="text-[11px] text-amber-600">No agent</div>}
-                    </td>
-                    {isToday && <td>{p.hasAgent ? <Pill tone={STATUS[p.status][0]}>{STATUS[p.status][1]}</Pill> : '–'}</td>}
-                    <td className="tabular-nums">{time(p.firstIn)}</td>
-                    <td className="tabular-nums">{isToday && p.stillWorking ? 'Now' : time(p.lastOut)}</td>
-                    <td className="tabular-nums">
-                      {p.firstIn ? <>
-                        {hm(p.workMinutes)}
-                        <div className="mt-1 h-1.5 w-20 rounded-full bg-elevated overflow-hidden" title={`${Math.round(Math.min(100, p.workMinutes / (p.officeDayMinutes || 540) * 100))}% of the ${Math.round((p.officeDayMinutes || 540) / 60)}h day`}>
-                          <div className="h-full bg-cat-work" style={{ width: `${Math.min(100, p.workMinutes / (p.officeDayMinutes || 540) * 100)}%` }} />
-                        </div>
-                      </> : '–'}
-                    </td>
-                    <td className="tabular-nums">{p.firstIn ? hm(p.deskWorkMinutes) : '–'}</td>
-                    <td className="tabular-nums text-cat-away" title={p.awayWork?.map(a => `${a.reason} ${hm(a.minutes)}`).join('\n')}>{p.firstIn ? hm(p.awayWorkMinutes) : '–'}</td>
-                    <td className="tabular-nums text-violet-light">{p.firstIn ? hm(p.claudeMinutes) : '–'}</td>
-                    <td className="tabular-nums">{p.firstIn ? hm(p.idleMinutes) : '–'}</td>
-                    <td className="tabular-nums">{p.firstIn ? hm(p.breakMinutes) : '–'}</td>
-                    <td className={`tabular-nums ${p.offlineMinutes ? 'text-amber-600' : ''}`}>{p.firstIn ? hm(p.offlineMinutes) : '–'}</td>
-                    <td className={`tabular-nums ${p.unproductiveMinutes ? 'text-rose-500' : ''}`} title={unpTitle(p.unproductive)}>{p.firstIn ? hm(p.unproductiveMinutes) : '–'}</td>
-                    <td className="text-xs text-slate-500">{p.location?.in ? <Place p={p.location.in} /> : '–'}</td>
-                    <td title={p.flags?.map(f => f.text).join('\n')}>
-                      {p.flags?.length ? <span className="inline-flex items-center gap-1 text-amber-600 text-sm"><ShieldAlert size={14} />{p.flags.length}</span> : <span className="text-slate-400">–</span>}
-                    </td>
-                  </tr>
-                ))}
-              </Table>
+              <DayDetail data={data} lead={lead} isToday={isToday} />
             </Card>
           )}
+
+          {team && (
+            <Card className="overflow-hidden">
+              <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-2 border-b border-line">
+                <h3 className="text-sm font-medium text-fg">{isToday ? 'Team now' : 'Team on this day'}</h3>
+                <span className="text-xs text-fg-3">Click a person to open their day</span>
+              </div>
+              {team.people.length
+                ? <ul className="divide-y divide-line">
+                    {team.people.map(p => <TeamRow key={p.id} p={p} isToday={isToday} active={p.id === who && !mine} onOpen={() => setWho(p.id)} />)}
+                  </ul>
+                : <EmptyState text="No one is set up for attendance yet." />}
+            </Card>
+          )}
+
+          {/* Someone else's day: right-hand drawer. */}
+          <Drawer open={drawerOpen} onClose={closeDrawer} title={data.person?.name} sub={dayLabel} aside={liveChip}>
+            {drawerOpen && <DayDetail data={data} lead={lead} isToday={isToday} />}
+          </Drawer>
         </>
       )}
     </>

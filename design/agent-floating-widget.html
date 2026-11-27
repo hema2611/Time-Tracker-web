@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ImagiNET Time Tracker – Floating Widget</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400&family=Inter:wght@400;500&family=JetBrains+Mono:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000000;--surface:#0d0a12;--elev:#181220;--line:rgba(185,143,215,.18);--vl:#a077c6;--t1:#f5f0fa;--t2:#b8afc7;--t3:#8f869e;--c:#34D399;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:#000000;color:var(--t1);font:400 13px/1.4 Inter,system-ui,sans-serif;overflow:hidden}
+.desk{position:absolute;inset:0;background:radial-gradient(70% 60% at 25% 20%,#3a1f66 0,transparent 70%),radial-gradient(60% 70% at 85% 80%,#2a1342 0,transparent 70%),linear-gradient(135deg,#0d0714,#1a0d2e 50%,#0a0614);}
+.icons{position:absolute;left:18px;top:18px;display:grid;gap:18px}
+.icons div{width:64px;text-align:center;font-size:11px;color:#d8d4e6;text-shadow:0 1px 3px #000}
+.icons i{display:block;width:38px;height:38px;margin:0 auto 4px;border-radius:9px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14)}
+.fakewin{position:absolute;left:14%;top:12%;width:46%;height:56%;min-width:260px;background:rgba(24,22,34,.92);border:1px solid rgba(255,255,255,.08);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.fakewin b{display:block;height:30px;border-bottom:1px solid rgba(255,255,255,.07)}
+.fakewin p{height:9px;border-radius:5px;background:rgba(255,255,255,.07);margin:16px 20px 0}
+.task{position:absolute;left:0;right:0;bottom:0;height:46px;background:rgba(13,10,18,.82);backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+.task .l{display:flex;gap:8px}.task .l i{width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.1)}
+.tray{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--t2)}
+.tray .ti{position:relative;width:22px;height:22px;display:grid;place-items:center;border-radius:6px;cursor:pointer}
+.tray .ti:hover{background:rgba(255,255,255,.1)}
+.tray .ti::after{content:"";position:absolute;right:1px;bottom:1px;width:7px;height:7px;border-radius:50%;background:var(--c);border:1.5px solid #0d0a12}
+/* widget */
+.w{position:absolute;right:26px;top:90px;z-index:20;user-select:none;touch-action:none;transition:opacity .3s,filter .3s}
+.w.idle-fade{opacity:.7}
+.shell{position:relative;background:linear-gradient(180deg,rgba(26,18,40,.92),rgba(10,8,16,.94));backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.4),0 0 24px -4px color-mix(in srgb,var(--c) 40%,transparent);cursor:grab;display:flex;align-items:center;gap:9px;padding:6px 14px 6px 8px;height:40px;transition:border-radius .25s,height .25s,box-shadow .3s}
+.shell:active{cursor:grabbing}
+.mark{width:26px;height:26px;border-radius:50%;background:var(--elev);display:grid;place-items:center;position:relative;flex:none}
+.mark::after{content:"";position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-radius:50%;background:var(--c);border:2px solid #120a1a;animation:br 2.5s ease-out infinite}
+@keyframes br{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 60%,transparent)}70%,100%{box-shadow:0 0 0 8px transparent}}
+.paused .mark::after,.offline .mark::after,.idle .mark::after{animation:none}
+.t{font:300 14px 'JetBrains Mono';font-variant-numeric:tabular-nums;letter-spacing:-.01em;min-width:62px}
+.lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--c);display:none}
+.more{display:none}
+/* modes */
+.dot .t,.dot .lbl{display:none}.dot .shell{padding:6px;gap:0}
+.exp .shell{border-radius:18px;height:auto;flex-direction:column;align-items:stretch;gap:10px;padding:12px 14px 12px;width:230px;cursor:grab}
+.exp .head{display:flex;align-items:center;gap:9px}
+.exp .lbl{display:block}.exp .more{display:block}
+.exp .t{font-size:30px;font-weight:200;min-width:0}
+.more .sub{color:var(--t2);font-size:11px;margin-bottom:10px}
+.btns{display:flex;gap:6px}
+.btns button{all:unset;flex:1;text-align:center;padding:7px 0;border-radius:9px;border:1px solid var(--line);font-size:11px;cursor:pointer;color:var(--t1);transition:.15s}
+.btns button:hover{background:var(--elev)}
+.btns .p{background:linear-gradient(100deg,#68428c,#8c5fb1);border-color:transparent}
+.hint{position:absolute;right:0;top:48px;white-space:nowrap;font-size:11px;color:var(--t2);background:rgba(13,10,18,.9);border:1px solid var(--line);padding:4px 10px;border-radius:8px;opacity:0;transform:translateY(-4px);transition:.2s;pointer-events:none}
+.w:hover:not(.exp) .hint{opacity:1;transform:none}
+/* control panel */
+.panel{position:absolute;left:18px;bottom:62px;z-index:30;width:250px;background:rgba(13,10,18,.92);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:14px;padding:14px}
+.panel h2{font:300 15px Outfit;margin-bottom:2px}.panel p{font-size:11px;color:var(--t3);margin-bottom:10px}
+.g{margin-bottom:10px}.g small{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--t3);margin-bottom:5px}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{all:unset;cursor:pointer;padding:5px 10px;border-radius:8px;border:1px solid var(--line);font-size:11px;color:var(--t2);transition:.15s}
+.seg button.on{background:var(--elev);color:var(--t1);border-color:var(--vl)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="desk">
+  <div class="icons"><div><i></i>Recycle Bin</div><div><i></i>Projects</div><div><i></i>Notes</div></div>
+  <div class="fakewin"><b></b><p style="width:60%"></p><p style="width:80%"></p><p style="width:45%"></p><p style="width:70%"></p></div>
+
+  <div class="w dot" id="w" style="--c:#34D399">
+    <div class="shell" id="shell">
+      <div class="head" style="display:contents">
+        <div class="mark"><svg width="15" height="14" viewBox="0 0 40 36"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#8c5fb1"/><stop offset="1" stop-color="#d1ade9"/></linearGradient></defs><path d="M1 2h14l5 30zM13 2h14l-7 30zM25 2h14L20 32z" fill="url(#g)"/></svg></div>
+        <span class="t" id="t">04:32:18</span>
+        <span class="lbl" id="lbl">Working</span>
+      </div>
+      <div class="more"><div class="sub" id="sub">You’re being tracked · Claude active</div>
+        <div class="btns"><button id="pz">Pause</button><button class="p" id="open">Open</button><button id="min">Minimize</button></div></div>
+    </div>
+    <div class="hint" id="hint">Click to expand · drag to move</div>
+  </div>
+
+  <div class="panel">
+    <h2>Widget settings</h2><p>Prototype controls, not part of the app.</p>
+    <div class="g"><small>Status</small><div class="seg" id="sg"><button class="on" data-s="working">Working</button><button data-s="idle">Idle</button><button data-s="paused">Paused</button><button data-s="offline">Offline</button></div></div>
+    <div class="g"><small>Size</small><div class="seg" id="mg"><button class="on" data-m="dot">Dot</button><button data-m="pill">Pill</button><button data-m="exp">Expanded</button></div></div>
+    <div class="g"><small>Behavior</small><div class="seg"><button id="fade">Fade when idle</button></div></div>
+  </div>
+
+  <div class="task"><div class="l"><i></i><i></i><i></i><i></i></div>
+    <div class="tray"><div class="ti" id="ti" title="ImagiNET Time Tracker"><svg width="13" height="12" viewBox="0 0 40 36"><path d="M1 2h14l5 30zM13 2h14l-7 30zM25 2h14L20 32z" fill="#d1ade9"/></svg></div><span>2:28 PM<br>Nov 25</span></div></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id),w=$('w');
+const S={working:{c:'#34D399',l:'Working',s:'You’re being tracked · Claude active'},idle:{c:'#FBBF24',l:'Idle',s:'No activity for 10 min · timer stopped'},paused:{c:'#64748B',l:'Paused',s:'Tracking is paused'},offline:{c:'#FB7185',l:'Offline',s:'Saving locally · will sync when back online'}};
+let st='working',mode='dot',secs=4*3600+32*60+18,fade=false,moved=false;
+const fmt=s=>[s/3600|0,(s/60|0)%60,s%60].map(n=>String(n).padStart(2,'0')).join(':');
+function render(){const o=S[st];w.style.setProperty('--c',o.c);document.documentElement.style.setProperty('--c',o.c);
+ $('lbl').textContent=o.l;$('sub').textContent=o.s;$('pz').textContent=st=='paused'?'Resume':'Pause';
+ w.className='w '+mode+' '+st+(fade&&st=='idle'?' idle-fade':'');
+ [...$('sg').children].forEach(b=>b.classList.toggle('on',b.dataset.s==st));
+ [...$('mg').children].forEach(b=>b.classList.toggle('on',b.dataset.m==mode));
+ $('fade').classList.toggle('on',fade);$('t').textContent=fmt(secs);
+ $('shell').style.width=mode=='exp'?'230px':'';}
+$('sg').onclick=e=>{if(e.target.dataset.s){st=e.target.dataset.s;render()}};
+$('mg').onclick=e=>{if(e.target.dataset.m){mode=e.target.dataset.m;render()}};
+$('fade').onclick=()=>{fade=!fade;render()};
+$('pz').onclick=e=>{e.stopPropagation();st=st=='paused'?'working':'paused';render()};
+$('min').onclick=e=>{e.stopPropagation();mode='dot';render()};
+$('open').onclick=e=>{e.stopPropagation();alert('Prototype: this opens the main tracker window.')};
+$('ti').onclick=()=>{mode=mode=='dot'?'pill':'dot';render()};
+setInterval(()=>{if(st=='working'||st=='offline'&&false)secs++;$('t').textContent=fmt(secs)},1000);
+// drag
+let d=null;
+$('shell').addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;const r=w.getBoundingClientRect();d={x:e.clientX-r.left,y:e.clientY-r.top,sx:e.clientX,sy:e.clientY};moved=false;$('shell').setPointerCapture(e.pointerId)});
+$('shell').addEventListener('pointermove',e=>{if(!d)return;if(Math.abs(e.clientX-d.sx)+Math.abs(e.clientY-d.sy)>4)moved=true;
+ w.style.right='auto';w.style.left=Math.max(0,Math.min(innerWidth-w.offsetWidth,e.clientX-d.x))+'px';w.style.top=Math.max(0,Math.min(innerHeight-w.offsetHeight-46,e.clientY-d.y))+'px'});
+$('shell').addEventListener('pointerup',()=>{if(!d)return;d=null;
+ if(!moved){mode=mode=='dot'?'pill':mode=='pill'?'exp':'pill'}
+ else{const r=w.getBoundingClientRect();w.style.transition='left .3s ease-out';w.style.left=(r.left+r.width/2<innerWidth/2?16:innerWidth-r.width-16)+'px';setTimeout(()=>w.style.transition='',320)}
+ render()});
+render();
+</script>
+</body>
+</html>

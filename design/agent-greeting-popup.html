@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ImagiNET Agent – Check-in Greeting Popup</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:#000;color:#F5F0FA;font:400 13px/1.45 Inter,system-ui,sans-serif;overflow:hidden}
+.desk{position:absolute;inset:0;background:radial-gradient(70% 60% at 22% 18%,#3a1f66 0,transparent 70%),radial-gradient(60% 70% at 88% 85%,#2a1342 0,transparent 70%),linear-gradient(135deg,#0d0714,#1a0d2e 50%,#0a0614)}
+.icons{position:absolute;left:18px;top:18px;display:grid;gap:18px}.icons div{width:64px;text-align:center;font-size:11px;color:#d8d4e6;text-shadow:0 1px 3px #000}
+.icons i{display:block;width:38px;height:38px;margin:0 auto 4px;border-radius:9px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14)}
+.task{position:absolute;left:0;right:0;bottom:0;height:46px;background:rgba(13,10,18,.85);backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+.task .l{display:flex;gap:8px}.task .l i{width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.1)}
+.tray{display:flex;align-items:center;gap:10px;font-size:11px;color:#B8AFC7}
+.panel{position:absolute;left:18px;bottom:62px;width:250px;z-index:3;background:rgba(13,10,18,.92);backdrop-filter:blur(16px);border:1px solid rgba(185,143,215,.16);border-radius:14px;padding:14px}
+.panel h2{font:300 15px Outfit;margin-bottom:2px}.panel p{font-size:11px;color:#8F869E;margin-bottom:10px}
+.g{margin-bottom:10px}.g small{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#8F869E;margin-bottom:5px}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{all:unset;cursor:pointer;padding:5px 10px;border-radius:8px;border:1px solid rgba(185,143,215,.16);font-size:11px;color:#B8AFC7;transition:.15s}
+.seg button.on{background:rgba(160,119,198,.16);color:#F5F0FA;border-color:#A077C6}
+.replay{all:unset;display:block;text-align:center;cursor:pointer;margin-top:4px;padding:8px;border-radius:9px;background:linear-gradient(100deg,#68428C,#8C5FB1);font-size:12px;font-weight:500}
+
+/* popup tokens */
+.pop{--s:#0D0A12;--s2:#181220;--ln:rgba(185,143,215,.18);--f:#F5F0FA;--f2:#B8AFC7;--f3:#8F869E;--v:#A077C6;--g:linear-gradient(100deg,#68428C,#8C5FB1);--ok:#34D399;--idle:#FBBF24;--sh:0 24px 60px rgba(0,0,0,.6),0 0 40px -10px rgba(160,119,198,.35)}
+.pop.light{--s:#FFFFFF;--s2:#F7F3FB;--ln:rgba(68,34,104,.14);--f:#1A0833;--f2:#55486B;--f3:#7A6E8F;--v:#7B519D;--g:linear-gradient(100deg,#58317E,#8C5FB1);--ok:#059669;--idle:#B77F08;--sh:0 24px 60px rgba(68,34,104,.25)}
+.pop{position:absolute;right:16px;bottom:62px;width:min(372px,calc(100% - 24px));z-index:10;background:var(--s);color:var(--f);border:1px solid var(--ln);border-radius:18px;box-shadow:var(--sh);overflow:hidden;transform:translateX(120%);opacity:0;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s;pointer-events:none}
+.pop.in{transform:none;opacity:1;pointer-events:auto}
+.pop::before{content:"";position:absolute;inset:0 0 auto;height:90px;background:radial-gradient(60% 100% at 30% 0,color-mix(in srgb,var(--v) 28%,transparent),transparent);pointer-events:none}
+.top{position:relative;display:flex;align-items:center;justify-content:space-between;padding:12px 14px 0 18px}
+.brand{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--f3);font-weight:500}
+.x{all:unset;cursor:pointer;color:var(--f3);width:26px;height:26px;display:grid;place-items:center;border-radius:7px;font-size:12px}.x:hover{background:var(--s2);color:var(--f)}
+.body{position:relative;display:flex;gap:14px;padding:12px 18px 6px}
+.ck{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 14%,transparent)}
+.ck svg{width:46px;height:46px}.ck circle{fill:none;stroke:var(--c);stroke-width:2;stroke-dasharray:126;stroke-dashoffset:126;opacity:.9}.ck path{fill:none;stroke:var(--c);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:30;stroke-dashoffset:30}
+.pop.in .ck circle{animation:dr .7s .35s ease-out forwards}.pop.in .ck path{animation:dr .4s .85s ease-out forwards}@keyframes dr{to{stroke-dashoffset:0}}
+h3{font:300 24px/1.15 Outfit;letter-spacing:-.01em}
+.line{margin-top:4px;color:var(--f2);font-size:13px}.line b{font:400 13px 'JetBrains Mono';color:var(--f);font-variant-numeric:tabular-nums}
+.meta{position:relative;display:flex;flex-wrap:wrap;gap:6px;padding:8px 18px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--s2);color:var(--f2);padding:3px 10px;border-radius:99px;font-size:12px}
+.note{position:relative;padding:12px 18px 0;font-size:12px;color:var(--f3)}.note a{color:var(--v);cursor:pointer;font-weight:500}
+.btns{position:relative;display:flex;gap:8px;padding:14px 18px 16px}
+.btns button{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;padding:9px 0;border-radius:10px;font-size:12px;font-weight:500;transition:.15s}
+.b1{flex:1.4;background:var(--g);color:#fff;box-shadow:0 6px 16px color-mix(in srgb,var(--v) 35%,transparent)}.b1:hover{transform:translateY(-1px)}
+.b2{flex:1;border:1px solid var(--ln);color:var(--f2)}.b2:hover{background:var(--s2);color:var(--f)}
+.cd{height:3px;background:var(--s2)}.cd i{display:block;height:100%;width:100%;background:var(--g);transform-origin:left}
+.pop.in .cd i{animation:cd 10s linear forwards}.pop:hover .cd i{animation-play-state:paused}@keyframes cd{to{transform:scaleX(0)}}
+.pop.idle .cd i{animation-duration:14s}
+.hint{position:absolute;left:50%;top:20px;transform:translateX(-50%);font-size:12px;color:#B8AFC7;background:rgba(13,10,18,.8);border:1px solid rgba(185,143,215,.16);padding:6px 14px;border-radius:99px;z-index:2}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.pop.in .ck circle,.pop.in .ck path{stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<div class="desk">
+ <div class="icons"><div><i></i>Recycle Bin</div><div><i></i>Projects</div><div><i></i>Notes</div></div>
+ <div class="hint">Windows just started. The agent launches and the popup appears.</div>
+
+ <div class="panel">
+  <h2>Popup settings</h2><p>Prototype controls, not part of the app.</p>
+  <div class="g"><small>Situation</small><div class="seg" id="sc"><button class="on" data-v="first">First start today</button><button data-v="back">Restarted later</button><button data-v="off">No internet</button></div></div>
+  <div class="g"><small>Time of day</small><div class="seg" id="tm"><button class="on" data-v="am">Morning</button><button data-v="pm">Afternoon</button><button data-v="ev">Evening</button></div></div>
+  <div class="g"><small>Look</small><div class="seg" id="lk"><button class="on" data-v="dark">Dark</button><button data-v="light">Light</button></div></div>
+  <button class="replay" id="rp">Replay popup</button>
+ </div>
+
+ <div class="pop" id="pop" role="status" aria-live="polite" style="--c:#34D399">
+  <div class="top"><div class="brand"><svg width="16" height="14" viewBox="0 0 40 36"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#8C5FB1"/><stop offset="1" stop-color="#D1ADE9"/></linearGradient></defs><path d="M1 2h14l5 30zM13 2h14l-7 30zM25 2h14L20 32z" fill="url(#g)"/></svg>Time Tracker</div><button class="x" id="cx" aria-label="Dismiss">✕</button></div>
+  <div class="body">
+   <div class="ck"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="20" transform="rotate(-90 23 23)"/><path d="M14 24l6 6 12-13"/></svg></div>
+   <div><h3 id="h">Good morning, Hema</h3><div class="line" id="ln">You’re checked in at <b>09:02 AM</b></div></div>
+  </div>
+  <div class="meta" id="mt"></div>
+  <div class="note" id="nt">Tracking has started. <a>What’s tracked</a></div>
+  <div class="btns"><button class="b1" id="op">Open tracker</button><button class="b2" id="ds">Dismiss</button></div>
+  <div class="cd"><i></i></div>
+ </div>
+
+ <div class="task"><div class="l"><i></i><i></i><i></i><i></i></div><div class="tray"><span>2:28 PM<br>Nov 26</span></div></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id),pop=$('pop');
+let sc='first',tm='am',tmr;
+const T={am:['Good morning','09:02 AM'],pm:['Good afternoon','02:15 PM'],ev:['Good evening','07:40 PM']};
+function build(){
+ const [g,t]=T[tm],ok='#34D399',idle='#FBBF24';
+ pop.classList.toggle('idle',sc=='off');
+ if(sc=='first'){pop.style.setProperty('--c',ok);$('h').textContent=g+', Hema';$('ln').innerHTML='You’re checked in at <b>'+t+'</b>';
+  $('mt').innerHTML='<span class="chip">📍 Chennai office</span><span class="chip">Day ends about <b style="font:400 12px JetBrains Mono">'+end(t)+'</b></span>';
+  $('nt').innerHTML='Tracking has started. <a>What’s tracked</a>'}
+ if(sc=='back'){pop.style.setProperty('--c',ok);$('h').textContent='Welcome back, Hema';$('ln').innerHTML='Tracking resumed. Checked in at <b>'+T.am[1]+'</b>';
+  $('mt').innerHTML='<span class="chip">2h 22m worked today</span><span class="chip">📍 Chennai office</span>';
+  $('nt').innerHTML='No new check-in was recorded. <a>What’s tracked</a>'}
+ if(sc=='off'){pop.style.setProperty('--c',idle);$('h').textContent=g+', Hema';$('ln').innerHTML='Checked in at <b>'+t+'</b> (saved offline)';
+  $('mt').innerHTML='<span class="chip" style="color:var(--idle)">● Offline</span><span class="chip">Will sync when connected</span>';
+  $('nt').innerHTML='Your time is safe on this computer. <a>What’s tracked</a>'}
+}
+function end(t){const[m,ap]=t.split(' ');let[h,mi]=m.split(':').map(Number);if(ap=='PM'&&h<12)h+=12;h=(h+9)%24;const a=h>=12?'PM':'AM';return String(h%12||12).padStart(2,'0')+':'+String(mi).padStart(2,'0')+' '+a}
+function show(){clearTimeout(tmr);pop.classList.remove('in');void pop.offsetWidth;build();setTimeout(()=>{pop.classList.add('in');tmr=setTimeout(hide,(sc=='off'?14:10)*1000+400)},250)}
+function hide(){pop.classList.remove('in')}
+function seg(id,fn){$(id).onclick=e=>{const v=e.target.dataset.v;if(!v)return;[...$(id).children].forEach(b=>b.classList.toggle('on',b==e.target));fn(v);show()}}
+seg('sc',v=>sc=v);seg('tm',v=>tm=v);seg('lk',v=>pop.classList.toggle('light',v=='light'));
+$('rp').onclick=show;$('cx').onclick=hide;$('ds').onclick=hide;$('op').onclick=()=>{hide();$('op').blur()};
+pop.addEventListener('mouseenter',()=>clearTimeout(tmr));
+pop.addEventListener('mouseleave',()=>{if(pop.classList.contains('in'))tmr=setTimeout(hide,3000)});
+setTimeout(show,700);
+</script>
+</body>
+</html>

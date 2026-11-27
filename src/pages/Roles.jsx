@@ -99,7 +99,7 @@ function PermissionsEditor({ role, onClose }) {
   </Modal>
 }
 
-function RoleForm({ role, onClose, onSaved }) {
+export function RoleForm({ role, onClose, onSaved }) {
   const [f, setF] = useState({ name: role.name || '', status: role.status || 'active' })
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
@@ -110,9 +110,10 @@ function RoleForm({ role, onClose, onSaved }) {
     if (!f.name.trim()) { setErrors({ name: 'Role name is required.' }); return }
     setBusy(true)
     try {
+      let id = role.id
       if (role.id) { await api(`/roles/${role.id}`, { method: 'PUT', body: f }); toast.success(`Role “${f.name}” updated.`) }
-      else { await api('/roles', { method: 'POST', body: f }); toast.success(`Role “${f.name}” added.`) }
-      onSaved()
+      else { id = (await api('/roles', { method: 'POST', body: f })).id; toast.success(`Role “${f.name}” added.`) }
+      onSaved(id)
     } catch (x) { setBusy(false); setErrors({ name: x.message }) }
   }
 

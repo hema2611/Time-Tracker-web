@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './auth.jsx'
 import Layout from './components/Layout.jsx'
 import Toaster from './components/Toaster.jsx'
-import { Login, ChangePassword } from './pages/Login.jsx'
+import { Login, ChangePassword, ResetPassword } from './pages/Login.jsx'
 import Employees from './pages/Employees.jsx'
 import Roles from './pages/Roles.jsx'
 import Projects from './pages/Projects.jsx'
@@ -28,16 +28,20 @@ export default function App() {
       </div>
     </div>
   )
+  // The reset link from the email works whether or not someone is signed in on this browser.
+  if (location.pathname === '/reset-password') return <ResetPassword />
   if (!user) return <Login />
   if (user.mustChangePassword) return <ChangePassword />
+  const admin = user.role === 'admin'
+  const home = admin ? '/employees' : user.role === 'client' ? '/projects' : '/attendance'
 
   return (
     <>
       <Toaster />
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/employees" replace />} />
-          <Route path="/employees" element={<Employees />} />
+          <Route path="/" element={<Navigate to={home} replace />} />
+          {admin && <Route path="/employees" element={<Employees />} />}
           <Route path="/roles" element={<Roles />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/project-repository" element={<ProjectRepository />} />
@@ -49,7 +53,7 @@ export default function App() {
           {user.role !== 'client' && <Route path="/tickets/:id" element={<TicketDetail />} />}
           {user.role !== 'client' && <Route path="/work-allotment" element={<WorkAllotment />} />}
           {user.role !== 'client' && <Route path="/reimbursements" element={<Reimbursements />} />}
-          <Route path="*" element={<Navigate to="/employees" replace />} />
+          <Route path="*" element={<Navigate to={home} replace />} />
         </Route>
       </Routes>
     </>

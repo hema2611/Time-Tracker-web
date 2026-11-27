@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ImagiNET Time Tracker – Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000000;--surface:#0d0a12;--elev:#181220;--line:rgba(185,143,215,.14);--deep:#442268;--violet:#7b519d;--vl:#a077c6;--t1:#f5f0fa;--t2:#b8afc7;--t3:#8f869e;--ok:#34D399;--idle:#FBBF24;--off:#64748B;--err:#FB7185;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0}
+body{background:#000000 radial-gradient(900px 500px at 50% 0,#1f1030 0,transparent 70%);color:var(--t1);font:400 13px/1.4 Inter,system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px 12px}
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);padding:4px;border-radius:12px}
+.tabs button{all:unset;cursor:pointer;padding:7px 14px;border-radius:9px;color:var(--t2);font-size:12px;transition:.2s}
+.tabs button.on{background:var(--elev);color:var(--t1);box-shadow:inset 0 0 0 1px var(--line)}
+.win{width:380px;max-width:100%;height:580px;background:var(--bg);border:1px solid var(--line);border-radius:16px;position:relative;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(160,119,198,.12)}
+.win::before{content:"";position:absolute;inset:0 0 auto;height:160px;background:radial-gradient(60% 100% at 50% 0,rgba(160,119,198,.22),transparent);pointer-events:none}
+.win::after{content:"";position:absolute;inset:0;opacity:.035;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
+.bar{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 16px;position:relative;z-index:2}
+.bar .ctl{display:flex}.bar .ctl span{width:34px;height:26px;display:grid;place-items:center;color:var(--t3);border-radius:6px;font-size:12px;cursor:default}
+.bar .ctl span:hover{background:var(--elev);color:var(--t1)}.bar .ctl span:last-child:hover{background:var(--err);color:#fff}
+.view{position:absolute;inset:38px 0 0;padding:0 26px 22px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transform:translateY(6px);transition:.25s ease-out;z-index:1}
+.view.on{opacity:1;pointer-events:auto;transform:none}
+.micro{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--t3)}
+.wm{font-family:Outfit;font-weight:200;letter-spacing:.01em;color:#8c5fb1}
+/* sign in */
+.si{align-items:center;text-align:center;padding-top:34px}
+.glow{position:absolute;top:10px;left:50%;width:300px;height:160px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(160,119,198,.35),transparent);filter:blur(10px)}
+.logo{position:relative;display:flex;align-items:center;gap:6px;margin-bottom:34px}
+.logo .wm{font-size:38px;line-height:1}.logo .wm b{font-weight:300;color:#a077c6}
+.logo small{font-family:Outfit;font-weight:200;color:var(--t3);font-size:11px;position:absolute;right:0;bottom:-13px}
+.card{width:100%;text-align:left;background:rgba(24,18,32,.55);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:16px;padding:22px 20px}
+h1{font:300 22px Outfit;margin-bottom:4px}.sub{color:var(--t2);font-size:12px;margin-bottom:18px}
+.f{position:relative;margin-bottom:12px}
+.f input{width:100%;background:var(--elev);border:1px solid var(--line);border-radius:10px;padding:20px 40px 7px 13px;color:var(--t1);font:14px Inter;outline:0;transition:.18s}
+.f input:focus{border-color:var(--vl);box-shadow:0 0 0 3px rgba(160,119,198,.25)}
+.f label{position:absolute;left:13px;top:15px;color:var(--t3);transition:.15s;pointer-events:none;font-size:13px}
+.f input:focus+label,.f input:not(:placeholder-shown)+label{top:6px;font-size:10px;color:var(--vl)}
+.f .eye{position:absolute;right:12px;top:14px;cursor:pointer;color:var(--t3);font-size:14px;user-select:none}
+.f.bad input{border-color:var(--err)}.msg{color:var(--err);font-size:11px;min-height:15px;margin:-6px 0 6px 2px}
+.btn{all:unset;box-sizing:border-box;width:100%;text-align:center;padding:12px;border-radius:10px;background:linear-gradient(100deg,#68428c,#8c5fb1);font-weight:500;cursor:pointer;position:relative;overflow:hidden;transition:.2s}
+.btn::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-120%);transition:transform .6s}
+.btn:hover::after{transform:translateX(120%)}.btn:active{transform:scale(.985)}
+.tag{margin-top:auto;font:200 11px Outfit;letter-spacing:.28em;color:var(--deep)}
+/* main */
+.who{margin-top:2px}.pill{display:inline-flex;align-items:center;gap:8px;margin-top:8px;padding:5px 12px 5px 10px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t1)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--ok));box-shadow:0 0 0 0 var(--c,var(--ok));animation:br 2.5s ease-out infinite}
+.paused .dot{--c:var(--idle);animation:none}
+@keyframes br{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}70%,100%{box-shadow:0 0 0 8px rgba(52,211,153,0)}}
+.hero{position:relative;width:196px;height:196px;margin:16px auto 6px}
+.hero svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.hero .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.time{font:200 36px 'JetBrains Mono';letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hero .micro{margin-top:4px}
+.tl{margin-top:8px}.strip{display:flex;gap:2px;height:30px;align-items:flex-end}
+.strip i{flex:1;border-radius:2px;background:var(--elev);height:30%}
+.strip i.a{background:linear-gradient(#8c5fb1,#68428c);height:100%}.strip i.m{background:#442268;height:60%}
+.axis{display:flex;justify-content:space-between;color:var(--t3);font-size:10px;margin-top:5px}
+.apps{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px 14px}
+.row{display:grid;grid-template-columns:1fr auto 70px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}.row em{font:normal 300 12px 'JetBrains Mono';color:var(--t2)}
+.row u{height:4px;border-radius:4px;background:var(--elev);position:relative;overflow:hidden;text-decoration:none}
+.row u::after{content:"";position:absolute;inset:0;width:var(--w);background:linear-gradient(90deg,#68428c,#8c5fb1);border-radius:4px}
+.foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;color:var(--t2);font-size:11px}
+.foot .ok{color:var(--ok)}.ic{display:flex;gap:4px}
+.ic button,.ghost{all:unset;cursor:pointer;color:var(--t2);padding:6px 10px;border-radius:8px;border:1px solid var(--line);font-size:11px;transition:.18s}
+.ic button:hover,.ghost:hover{background:var(--elev);color:var(--t1)}
+.drawer{position:absolute;left:0;right:0;bottom:0;background:#0a0710;border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:18px 24px 24px;transform:translateY(105%);transition:.25s ease-out;z-index:5}
+.drawer.on{transform:none}.drawer h2{font:300 16px Outfit;margin-bottom:10px}
+.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:11px;color:var(--t2)}
+.kv code{font:300 11px 'JetBrains Mono';color:var(--t1);max-width:200px;overflow-wrap:anywhere;text-align:right}
+.drawer .ghost{display:block;margin-top:14px;text-align:center}
+.toast{position:absolute;left:50%;top:48px;transform:translate(-50%,-20px);background:var(--elev);border:1px solid var(--line);padding:7px 14px;border-radius:99px;font-size:11px;opacity:0;transition:.25s;z-index:9}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.note{color:var(--t3);font-size:11px;max-width:380px;text-align:center}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="tabs"><button id="t1" class="on">Sign in</button><button id="t2">Main screen</button></div>
+
+<div class="win" id="win">
+  <div class="bar">
+    <svg width="20" height="18" viewBox="0 0 40 36"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#68428c"/><stop offset="1" stop-color="#b98fd7"/></linearGradient></defs><path d="M1 2h14l5 30zM13 2h14l-7 30zM25 2h14L20 32z" fill="url(#g)" opacity=".9"/></svg>
+    <div class="ctl"><span>─</span><span>▢</span><span>✕</span></div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <!-- SIGN IN -->
+  <section class="view si on" id="v1">
+    <div class="glow"></div>
+    <div class="logo"><span class="wm">Imagi<b>NET</b></span><svg width="46" height="34" viewBox="0 0 40 36"><path d="M1 2h14l5 30zM13 2h14l-7 30zM25 2h14L20 32z" fill="url(#g)"/></svg><small>Ventures</small></div>
+    <div class="card">
+      <h1>Sign in</h1><p class="sub">Use your tracker email and password. You only do this once on this computer.</p>
+      <div class="f" id="fe"><input id="em" placeholder=" " autocomplete="off" value="hemalatha@imaginet"><label for="em">Email</label></div>
+      <div class="f" id="fp"><input id="pw" type="password" placeholder=" "><label for="pw">Password</label><span class="eye" id="eye">◉</span></div>
+      <div class="msg" id="msg"></div>
+      <button class="btn" id="go">Sign in</button>
+    </div>
+    <div class="tag">EXPERIENCE THAT EVOLVES.</div>
+  </section>
+
+  <!-- MAIN -->
+  <section class="view" id="v2">
+    <div class="who"><div class="micro">Hema · DESKTOP-P1JA6C0</div>
+      <div class="pill" id="pill"><span class="dot"></span><span id="pt">Working</span></div></div>
+    <div class="hero">
+      <svg viewBox="0 0 196 196"><defs><linearGradient id="rg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#68428c"/><stop offset="1" stop-color="#b98fd7"/></linearGradient></defs>
+        <circle cx="98" cy="98" r="90" fill="none" stroke="#181220" stroke-width="4"/>
+        <circle id="ring" cx="98" cy="98" r="90" fill="none" stroke="url(#rg)" stroke-width="4" stroke-linecap="round" stroke-dasharray="565.5" stroke-dashoffset="565" style="transition:stroke-dashoffset 1.4s ease-out;filter:drop-shadow(0 0 6px rgba(160,119,198,.7))"/></svg>
+      <div class="in"><div class="time" id="time">00:00:00</div><div class="micro">Active today</div></div>
+    </div>
+    <div class="tl"><div class="strip" id="strip"></div><div class="axis"><span>9a</span><span>11a</span><span>1p</span><span>3p</span><span>5p</span></div></div>
+    <div class="apps">
+      <div class="row"><span>Claude</span><em>2h 10m</em><u style="--w:100%"></u></div>
+      <div class="row"><span>VS Code</span><em>1h 05m</em><u style="--w:50%"></u></div>
+      <div class="row"><span>Chrome</span><em>0h 41m</em><u style="--w:32%"></u></div>
+    </div>
+    <div class="foot"><span class="ok">✓ Synced 02:28 PM</span>
+      <div class="ic"><button id="pause">Pause</button><button id="more">⋯</button></div></div>
+    <div class="drawer" id="dr">
+      <h2>Diagnostics</h2>
+      <div class="kv"><span>Server</span><code>http://localhost:4001</code></div>
+      <div class="kv"><span>Agent started</span><code>Nov 25, 02:25:23 PM</code></div>
+      <div class="kv"><span>Idle limit</span><code>10 min</code></div>
+      <div class="kv"><span>Log file</span><code>…\time-tracker-agent\activity.log</code></div>
+      <button class="ghost" id="close">Close</button>
+    </div>
+  </section>
+</div>
+<p class="note">Interactive prototype: try the tabs, the eye icon, Pause, and ⋯. The main screen’s timer ticks live.</p>
+
+<script>
+const $=id=>document.getElementById(id);
+let secs=4*3600+32*60+18,paused=false;
+const fmt=s=>[s/3600|0,(s/60|0)%60,s%60].map(n=>String(n).padStart(2,'0')).join(':');
+function show(n){$('v1').classList.toggle('on',n==1);$('v2').classList.toggle('on',n==2);$('t1').classList.toggle('on',n==1);$('t2').classList.toggle('on',n==2);
+ if(n==2){$('ring').style.strokeDashoffset=565.5*(1-Math.min(secs/28800,1))}else{$('ring').style.strokeDashoffset=565}}
+$('t1').onclick=()=>show(1);$('t2').onclick=()=>show(2);
+$('eye').onclick=()=>{const p=$('pw');p.type=p.type=='password'?'text':'password'};
+$('go').onclick=()=>{const e=$('em').value.trim(),p=$('pw').value;let bad=false;
+ $('fe').classList.remove('bad');$('fp').classList.remove('bad');
+ if(!/^\S+@\S+\.\S+$/.test(e)){$('fe').classList.add('bad');$('msg').textContent='Enter a full email address, like name@imaginet.com.';bad=true}
+ else if(!p){$('fp').classList.add('bad');$('msg').textContent='Enter your password.';bad=true}
+ if(!bad){$('msg').textContent='';show(2)}};
+// timeline
+const st=$('strip');for(let i=0;i<64;i++){const e=document.createElement('i');const r=Math.sin(i*1.7)+Math.cos(i*.6);
+ e.className=i>46?'':(r>.5?'a':(r>-.4?'m':''));if(i>46)e.style.opacity=.35;st.appendChild(e)}
+// pause
+function setP(p){paused=p;$('win').classList.toggle('paused',p);$('v2').classList.toggle('paused',p);$('pt').textContent=p?'Paused':'Working';$('pause').textContent=p?'Resume':'Pause';
+ const t=$('toast');t.textContent=p?'Tracking paused':'Tracking resumed';t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1600)}
+$('pause').onclick=()=>setP(!paused);
+$('more').onclick=()=>$('dr').classList.add('on');$('close').onclick=()=>$('dr').classList.remove('on');
+setInterval(()=>{if(!paused){secs++;}$('time').textContent=fmt(secs);if($('v2').classList.contains('on'))$('ring').style.strokeDashoffset=565.5*(1-Math.min(secs/28800,1))},1000);
+$('time').textContent=fmt(secs);
+</script>
+</body>
+</html>

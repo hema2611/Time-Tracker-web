@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Trash2, AlertTriangle, ChevronDown, Check, Calendar as CalendarIcon, ChevronLeft, ChevronRight, X, Search, Clock, User } from 'lucide-react'
+import { Trash2, AlertTriangle, ChevronDown, Check, Calendar as CalendarIcon, ChevronLeft, ChevronRight, X, Search, Clock, User, Inbox, Plus } from 'lucide-react'
+
+// Shared building blocks. Look and rules: DESIGN.md (read before changing). Colours only from theme tokens.
 
 // Employee photo, or a placeholder icon when there is none.
 export const photoUrl = p => (p ? `/api/uploads/${p}` : null)
 export function Avatar({ photo, name, size = 36 }) {
   const url = photoUrl(photo)
+  const ini = (name || '').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
   return url
-    ? <img src={url} alt={name} width={size} height={size} className="rounded-full object-cover border border-slate-200 shrink-0" style={{ width: size, height: size }} />
-    : <div className="rounded-full bg-indigo-50 text-indigo-600 grid place-items-center border border-slate-200 shrink-0" style={{ width: size, height: size }}><User size={size * 0.5} /></div>
+    ? <img src={url} alt={name} width={size} height={size} className="rounded-full object-cover border border-line shrink-0" style={{ width: size, height: size }} />
+    : <div className="rounded-full bg-violet-tint text-violet-strong grid place-items-center shrink-0 font-semibold" style={{ width: size, height: size, fontSize: Math.round(size * 0.35) }} aria-hidden="true">{ini || <User size={size * 0.5} strokeWidth={1.5} />}</div>
 }
 
 // Closes a popup when the user clicks, taps or tabs to anything outside `ref`, or presses Escape.
@@ -37,7 +40,7 @@ export function useDismiss(open, ref, close) {
 }
 
 // Multi-select with search, checkboxes and removable chips. value = array of option values.
-export function MultiSelect({ label, value = [], onChange, options, placeholder = 'Select…', req, error, hint, className = '' }) {
+export function MultiSelect({ label, value = [], onChange, options, placeholder = 'Select…', req, error, hint, className = '', onAddNew, addLabel }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const ref = useRef(null)
@@ -92,6 +95,7 @@ export function MultiSelect({ label, value = [], onChange, options, placeholder 
                   </li>
                 )
               })}
+              {onAddNew && <AddNewRow label={addLabel} onClick={() => { setOpen(false); onAddNew() }} />}
             </ul>
           </div>
         )}
@@ -287,7 +291,20 @@ export function TimeSelect({ label, value, onChange, req, error, hint, placehold
 
 // Custom dropdown with a height-capped, scrollable option panel.
 // options: [{ value, label }]. Pass an empty-value option for a "clear" choice.
-export function Dropdown({ label, value, onChange, options, placeholder = 'Select…', required, error, hint, className = '' }) {
+// "+ Add new …" pinned at the bottom of a dropdown list: create a master record without leaving the form.
+function AddNewRow({ label = 'Add new', onClick }) {
+  return (
+    <li className="sticky bottom-0 bg-surface border-t border-line mt-1">
+      <button type="button" onClick={onClick}
+        className="w-full flex items-center gap-2 text-left px-3 py-2.5 text-sm font-medium text-violet hover:bg-violet-tint transition duration-150">
+        <Plus size={15} strokeWidth={2} className="shrink-0" />{label}
+      </button>
+    </li>
+  )
+}
+
+// onAddNew (optional): shows "+ {addLabel}" at the bottom of the list; called after the list closes.
+export function Dropdown({ label, value, onChange, options, placeholder = 'Select…', required, error, hint, className = '', onAddNew, addLabel }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useDismiss(open, ref, () => setOpen(false))
@@ -318,6 +335,7 @@ export function Dropdown({ label, value, onChange, options, placeholder = 'Selec
                 </li>
               )
             })}
+            {onAddNew && <AddNewRow label={addLabel} onClick={() => { setOpen(false); onAddNew() }} />}
           </ul>
         )}
       </div>
@@ -444,7 +462,7 @@ export function MonthPicker({ value, onChange, className = '' }) {
 }
 
 export const Card = ({ className = '', children }) => (
-  <div className={`glass border border-slate-200 rounded-2xl shadow-pop ${className}`}>{children}</div>
+  <div className={`bg-surface border border-line rounded-lg shadow-card ${className}`}>{children}</div>
 )
 
 // A centred dialog used by both masters for create / edit.
@@ -463,23 +481,37 @@ export const Modal = ({ title, sub, onClose, children, size = 'max-w-lg' }) => (
   </div>
 )
 
-const PILL = {
-  ok: 'bg-green-100 text-green-700', risk: 'bg-amber-100 text-amber-700', late: 'bg-red-100 text-red-700',
-  done: 'bg-slate-100 text-slate-600', info: 'bg-indigo-50 text-indigo-700', neutral: 'bg-slate-100 text-slate-600',
-}
-export const Pill = ({ tone = 'neutral', children }) => (
-  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${PILL[tone]}`}>{children}</span>
+// Status → colour, the same meaning everywhere (DESIGN.md §6). Violet is never a status.
+export const STATUS_TONE = { ok: 'bg-ok', away: 'bg-away', idle: 'bg-idle', brk: 'bg-brk', off: 'bg-off', none: 'bg-fg-3' }
+
+// 8px dot. "Working" (ok + live) breathes; everything else is still.
+export const StatusDot = ({ tone = 'none', live = false, className = '' }) => (
+  <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${STATUS_TONE[tone]} ${live && tone === 'ok' ? 'breathe' : ''} ${className}`} aria-hidden="true" />
 )
 
-export const Button = ({ variant = 'default', className = '', ...p }) => {
+// Neutral chip; tinted only when action is needed (warn) or something failed (bad).
+const CHIP = { neutral: 'bg-surface-2 text-fg-2', warn: 'bg-amber-100 text-amber-700', bad: 'bg-red-50 text-red-700', ok: 'bg-green-50 text-green-700', accent: 'bg-violet-tint text-violet-strong' }
+export const Chip = ({ tone = 'neutral', dot, className = '', children, ...p }) => (
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs whitespace-nowrap ${CHIP[tone]} ${className}`} {...p}>
+    {dot && <StatusDot tone={dot} />}{children}
+  </span>
+)
+
+// Older name, kept for existing pages.
+const PILL_TONE = { ok: 'ok', risk: 'warn', late: 'bad', done: 'neutral', info: 'accent', neutral: 'neutral' }
+export const Pill = ({ tone = 'neutral', children }) => <Chip tone={PILL_TONE[tone] || 'neutral'} className="font-medium">{children}</Chip>
+
+// primary = brand gradient; default/secondary = hairline outline; ghost = text only.
+export const Button = ({ variant = 'default', className = '', type = 'button', ...p }) => {
   const v = {
-    default: 'bg-slate-100 border-slate-200 hover:border-slate-300 hover:bg-slate-200 text-slate-700',
-    primary: 'rail border-transparent text-ink hover:brightness-110 shadow-glow',
-    success: 'bg-green-600 border-green-600 hover:bg-green-700 text-white',
-    danger: 'bg-red-600 border-red-600 hover:bg-red-700 text-white',
-    ghost: 'border-transparent hover:bg-slate-100 text-slate-600',
+    primary: 'grad-brand border-transparent text-white shadow-glow hover:-translate-y-px',
+    default: 'bg-transparent border-line text-fg hover:bg-violet-tint',
+    secondary: 'bg-transparent border-line text-fg hover:bg-violet-tint',
+    success: 'bg-ok border-transparent text-white hover:-translate-y-px',
+    danger: 'bg-off border-transparent text-white hover:-translate-y-px',
+    ghost: 'border-transparent text-fg-2 hover:bg-violet-tint hover:text-fg',
   }[variant]
-  return <button className={`border rounded-xl px-3.5 py-1.5 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${v} ${className}`} {...p} />
+  return <button type={type} className={`inline-flex items-center justify-center gap-1.5 border rounded-md px-3.5 py-2 font-medium transition duration-200 ease-out active:scale-[.985] disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 ${v} ${className}`} {...p} />
 }
 
 // A styled confirmation dialog — replaces the browser's native confirm().
@@ -507,12 +539,12 @@ export const ConfirmDialog = ({ title = 'Are you sure?', message, confirmLabel =
 }
 
 export const PageHeader = ({ title, sub, actions }) => (
-  <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+  <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-      {sub && <p className="text-slate-500 mt-0.5">{sub}</p>}
+      <h1 className="text-[32px] leading-tight">{title}</h1>
+      {sub && <p className="text-fg-2 mt-1">{sub}</p>}
     </div>
-    {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
+    {actions && <div className="flex gap-2 flex-wrap items-center">{actions}</div>}
   </div>
 )
 
@@ -524,13 +556,22 @@ export const Textarea = ({ label, hint, error, req, className = '', ...p }) => (
   </label>
 )
 
-export const Input = ({ label, hint, error, req, className = '', ...p }) => (
-  <label className={`block ${className}`}>
-    {label && <span className="block text-xs font-medium text-slate-600 mb-1">{label}{req && <span className="text-red-500"> *</span>}</span>}
-    <input className={`w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-200'}`} {...p} />
-    {error ? <span className="block text-xs text-red-600 mt-1">{error}</span> : hint && <span className="block text-xs text-slate-400 mt-1">{hint}</span>}
-  </label>
-)
+// Text input. Password fields get a Show/Hide toggle. Error turns the border red with a 12px message.
+export function Input({ label, hint, error, req, className = '', type = 'text', ...p }) {
+  const [show, setShow] = useState(false)
+  const pw = type === 'password'
+  return (
+    <label className={`block ${className}`}>
+      {label && <span className="block text-xs font-medium text-fg mb-1.5">{label}{req && <span className="text-off"> *</span>}</span>}
+      <span className="relative block">
+        <input type={pw && show ? 'text' : type} aria-invalid={!!error}
+          className={`w-full bg-surface border rounded-md px-3.5 py-3 text-fg transition duration-200 focus:outline-none focus:ring-4 ${pw ? 'pr-16' : ''} ${error ? 'border-off focus:ring-off/20' : 'border-line focus:border-violet focus:ring-violet/20'}`} {...p} />
+        {pw && <button type="button" onClick={() => setShow(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-fg-3 hover:text-fg px-1" aria-label={show ? 'Hide password' : 'Show password'}>{show ? 'Hide' : 'Show'}</button>}
+      </span>
+      {error ? <span className="block text-xs text-off mt-1.5" role="alert">{error}</span> : hint && <span className="block text-xs text-fg-3 mt-1.5">{hint}</span>}
+    </label>
+  )
+}
 
 export const Select = ({ label, options, className = '', ...p }) => (
   <label className={`block ${className}`}>
@@ -554,10 +595,65 @@ export const Table = ({ head, children }) => (
   </div>
 )
 
-export const Kpi = ({ label, value, note, tone }) => (
-  <Card className="p-4">
-    <div className="text-xs text-slate-500">{label}</div>
-    <div className="text-2xl font-semibold mt-1">{value}</div>
-    {note && <div className={`text-xs mt-1 ${tone === 'bad' ? 'text-red-600' : tone === 'warn' ? 'text-amber-600' : 'text-slate-400'}`}>{note}</div>}
+// Micro-label, 30px Outfit light number, optional status dot.
+export const KpiCard = ({ label, value, dot, note }) => (
+  <Card className="px-4 py-3.5">
+    <div className="micro">{label}</div>
+    <div className="font-display font-light text-[30px] leading-tight text-fg flex items-center gap-2 mt-0.5">{dot && <StatusDot tone={dot} />}{value}</div>
+    {note && <div className="text-xs text-fg-3 mt-0.5">{note}</div>}
   </Card>
+)
+export const Kpi = ({ label, value, note }) => <KpiCard label={label} value={value} note={note} />
+
+// Detail views slide in from the right (max 640px, dim backdrop, 300ms). Esc or a click outside closes it.
+export function Drawer({ open, onClose, title, sub, aside, children }) {
+  useEffect(() => {
+    if (!open) return
+    const k = e => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k)
+  }, [open, onClose])
+  return (
+    <>
+      <div onClick={onClose} className={`fixed inset-0 z-40 bg-black/45 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} />
+      <aside role="dialog" aria-modal="true" aria-hidden={!open} aria-label={typeof title === 'string' ? title : undefined}
+        className={`fixed top-0 right-0 bottom-0 z-50 w-full max-w-[640px] bg-surface border-l border-line shadow-card overflow-y-auto px-7 py-6 transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-[102%]'}`}>
+        {open && <>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0"><h2 className="text-[26px] leading-tight truncate">{title}</h2>{sub && <div className="text-xs text-fg-3 mt-0.5">{sub}</div>}</div>
+            <div className="flex items-center gap-2 shrink-0">{aside}<button type="button" onClick={onClose} aria-label="Close" className="p-2 rounded-md text-fg-2 hover:bg-violet-tint hover:text-fg"><X size={18} strokeWidth={1.5} /></button></div>
+          </div>
+          {children}
+        </>}
+      </aside>
+    </>
+  )
+}
+
+// Thin gradient ring with a value inside (e.g. hours toward the 9 h day). value 0–1.
+export function ProgressRing({ value = 0, size = 128, stroke = 9, children }) {
+  const r = 64 - stroke / 2 - 1, c = 2 * Math.PI * r
+  const id = useRef(`ring-${Math.random().toString(36).slice(2)}`).current
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 128 128" className="w-full h-full -rotate-90" aria-hidden="true">
+        <defs><linearGradient id={id} x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="var(--color-brand-700)" /><stop offset="1" stopColor="var(--color-brand-200)" /></linearGradient></defs>
+        <circle cx="64" cy="64" r={r} fill="none" stroke="var(--color-surface-2)" strokeWidth={stroke} />
+        <circle cx="64" cy="64" r={r} fill="none" stroke={`url(#${id})`} strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={c * (1 - Math.max(0, Math.min(1, value)))} style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
+      </svg>
+      <div className="absolute inset-0 grid place-content-center text-center">{children}</div>
+    </div>
+  )
+}
+
+// Loading placeholder (skeletons, not spinners).
+export const Skeleton = ({ className = '' }) => <div className={`skeleton rounded-md ${className}`} aria-hidden="true" />
+
+// Empty state: icon, one sentence, one action.
+export const EmptyState = ({ icon: Icon = Inbox, text, action }) => (
+  <div className="py-12 px-6 text-center">
+    <Icon size={22} strokeWidth={1.5} className="mx-auto text-fg-3" />
+    <p className="mt-3 text-fg-2">{text}</p>
+    {action && <div className="mt-4">{action}</div>}
+  </div>
 )

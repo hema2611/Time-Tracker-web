@@ -4,6 +4,7 @@ import { Plus, LayoutGrid, List, Search, Clock, MessageSquare, Paperclip, Upload
 import { api } from '../lib/api.js'
 import { toast } from '../lib/toast.js'
 import { Card, Button, PageHeader, Input, Textarea, Table, Modal, Dropdown, MultiSelect, DatePicker, Avatar } from '../components/ui.jsx'
+import { useQuickAdd } from '../components/QuickAdd.jsx'
 import { STATUSES, STATUS, TYPES, PRIORITIES, REPORTERS, TypeTag, PriorityTag, StatusTag, dur, clock, fmtDT } from '../lib/tickets.jsx'
 
 const opts = obj => Object.entries(obj).map(([value, x]) => ({ value, label: typeof x === 'string' ? x : x.label }))
@@ -228,14 +229,17 @@ export async function sendForm(path, fd) {
   return data
 }
 
-function RaiseTicket({ projects, defaultProject, onClose, onSaved }) {
+function RaiseTicket({ projects: initialProjects, defaultProject, onClose, onSaved }) {
+  const [projects, setProjects] = useState(initialProjects)
   const [f, setF] = useState({ project_id: defaultProject || '', title: '', description: '', type: 'bug', priority: 'medium', reported_by: 'client', reporter_name: '', due_date: '', assignee_ids: [] })
   const [employees, setEmployees] = useState([])
   const [files, setFiles] = useState([])
   const [links, setLinks] = useState([])
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
-  useEffect(() => { api('/tickets/options').then(d => setEmployees(d.employees)).catch(() => {}) }, [])
+  const loadOptions = () => api('/tickets/options').then(d => { setEmployees(d.employees); setProjects(d.projects) }).catch(() => {})
+  useEffect(() => { loadOptions() }, [])
+  const qa = useQuickAdd() // "+ Add new project / employee" inside the dropdowns
   const set = (k, v) => { setF(s => ({ ...s, [k]: v })); setErrors(e => (e[k] ? { ...e, [k]: undefined } : e)) }
   const project = projects.find(p => String(p.id) === String(f.project_id))
 
@@ -259,7 +263,8 @@ function RaiseTicket({ projects, defaultProject, onClose, onSaved }) {
     <Modal title="Raise ticket" sub={project ? `Will be numbered ${project.prefix}-…` : 'Every change on a project gets its own ticket.'} onClose={onClose} size="max-w-2xl">
       <form onSubmit={submit} noValidate className="p-5 space-y-4">
         <Dropdown label="Project" required value={f.project_id} error={errors.project_id} onChange={v => set('project_id', v)} placeholder="Select a project"
-          options={projects.map(p => ({ value: p.id, label: `${p.name} (${p.prefix})` }))} />
+          options={projects.map(p => ({ value: p.id, label: `${p.name} (${p.prefix})` }))}
+          {...qa.props('project', async id => { await loadOptions(); set('project_id', id) })} />
         <Input label="Issue" req value={f.title} error={errors.title} onChange={e => set('title', e.target.value)} maxLength={200} placeholder="e.g. SAP data sync failure" />
         <Textarea label="Details (optional)" rows={4} value={f.description} onChange={e => set('description', e.target.value)} maxLength={5000} placeholder="Steps to reproduce, what was expected, what happened…" />
         <div className="grid sm:grid-cols-3 gap-3">
@@ -272,7 +277,8 @@ function RaiseTicket({ projects, defaultProject, onClose, onSaved }) {
           <DatePicker label="Due date (optional)" value={f.due_date} onChange={v => set('due_date', v || '')} />
         </div>
         <MultiSelect label="Assign to (optional)" value={f.assignee_ids} onChange={v => set('assignee_ids', v)} placeholder="Select employees"
-          options={employees.map(e => ({ value: e.id, label: e.role_name ? `${e.name} · ${e.role_name}` : e.name }))} />
+          options={employees.map(e => ({ value: e.id, label: e.role_name ? `${e.name} · ${e.role_name}` : e.name }))}
+          {...qa.props('employee', async id => { await loadOptions(); setF(s => ({ ...s, assignee_ids: [...s.assignee_ids, id] })) })} />
         <div>
           <span className="block text-xs font-medium text-slate-600 mb-1">Attachments (optional)</span>
           <AttachPicker files={files} setFiles={setFiles} links={links} setLinks={setLinks} error={errors.links} />
@@ -282,6 +288,7 @@ function RaiseTicket({ projects, defaultProject, onClose, onSaved }) {
           <Button type="submit" variant="primary" disabled={busy}>{busy ? 'Raising…' : 'Raise ticket'}</Button>
         </div>
       </form>
+      {qa.node}
     </Modal>
   )
 }

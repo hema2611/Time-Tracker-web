@@ -1,283 +1,246 @@
 /*
-  ImagiNET Tracker theme: "Obsidian & Violet"
-  ------------------------------------------------------------------
-  THE ONE PLACE FOR COLOURS. Every page must use these, never its own hex values.
+  ImagiNET Tracker theme — THE ONE PLACE FOR COLOURS. Follows DESIGN.md (read it before any UI change).
 
-  Taken from the ImagiNET Ventures logo (public/brand/imaginet-logo.png) and the orb
-  (public/brand/imaginet-orb.png). The logo is chrome violet: a deep purple shadow,
-  a mid orchid body, lavender highlights and a near-white sheen, plus the grey of
-  "Ventures". The app is a dark, calm surface where violet acts as light, not paint.
+  Colours come from the ImagiNET logo: one purple family, from near-black violet (#1A0833) to pale
+  orchid (#F4EDFA). Pages are pure black (dark) or pure white (light). Cards separate from the page
+  by a hairline border and a soft shadow, not by a different fill.
 
-  How pages use it:
-    - Semantic names (preferred in new code): bg-canvas, bg-surface, bg-elevated,
-      border-line, text-fg, text-fg-2, text-fg-3, bg-violet, text-violet-light,
-      bg-brand-deep, shadow-glow, plus the status names ok / warn / bad / info.
-    - Existing Tailwind names (slate, indigo, green, amber, red, rose, white) are
-      re-pointed below, so older screens follow the theme without edits.
-      Note: use bg-surface for cards, not bg-white.
-  Text contrast rule: text colours stay readable in both themes (dark ≥7:1, light ≥4.5:1). No fainter greys.
+  Token names (use these in pages):
+    bg-bg, bg-surface, bg-surface-2, border-line, text-fg, text-fg-2, text-fg-3,
+    bg-violet / text-violet, text-violet-strong, bg-violet-tint, bg-grad-brand (class .grad-brand),
+    status: ok, away, idle, brk, off  (violet is never a status)
+    shadow-card, rounded-md (11px), rounded-lg (16px), rounded-xl (22px)
+    font-display (Outfit), font-sans (Inter), font-mono (JetBrains Mono)
 
-  Two themes, same names: values live in :root (dark, default) and [data-theme="light"].
-  Pages never check the theme; they use the names and the right value comes through.
-  The switch is in src/lib/theme.js (remembered per computer; first visit follows the OS).
+  Older names (canvas, elevated, cat-*, slate-*, indigo-*, green/amber/red/rose) are re-pointed
+  to these tokens so older screens follow the theme until they are rebuilt. Do not use them in new code.
+
+  Two themes, same names: dark in :root (default), light in [data-theme="light"].
+  The switch is src/lib/theme.jsx (remembered per computer; first visit follows the OS).
 */
 @theme inline {
-  --color-canvas: var(--t-canvas);
+  /* Design tokens (DESIGN.md §2) */
+  --color-bg: var(--t-bg);
   --color-surface: var(--t-surface);
-  --color-elevated: var(--t-elevated);
-  --color-sidebar: var(--t-sidebar);
+  --color-surface-2: var(--t-surface-2);
   --color-line: var(--t-line);
-  --color-line-strong: var(--t-line-strong);
-  --color-brand-deep: var(--t-brand-deep);
-  --color-violet: var(--t-violet);
-  --color-violet-hover: var(--t-violet-hover);
-  --color-violet-light: var(--t-violet-light);
-  --color-violet-sheen: var(--t-violet-sheen);
   --color-fg: var(--t-fg);
   --color-fg-2: var(--t-fg-2);
   --color-fg-3: var(--t-fg-3);
+  --color-violet: var(--t-violet);
+  --color-violet-strong: var(--t-violet-strong);
+  --color-violet-tint: var(--t-violet-tint);
   --color-ok: var(--t-ok);
-  --color-warn: var(--t-warn);
-  --color-bad: var(--t-bad);
-  --color-info: var(--t-info);
-  --color-cat-work: var(--t-cat-work);
-  --color-cat-away: var(--t-cat-away);
-  --color-cat-idle: var(--t-cat-idle);
-  --color-cat-break: var(--t-cat-break);
-  --color-cat-off: var(--t-cat-off);
-  --color-white: var(--t-white);
-  --color-slate-50: var(--t-slate-50);
-  --color-slate-100: var(--t-slate-100);
-  --color-slate-200: var(--t-slate-200);
-  --color-slate-300: var(--t-slate-300);
-  --color-slate-400: var(--t-slate-400);
-  --color-slate-500: var(--t-slate-500);
-  --color-slate-600: var(--t-slate-600);
-  --color-slate-700: var(--t-slate-700);
-  --color-slate-800: var(--t-slate-800);
-  --color-slate-900: var(--t-slate-900);
-  --color-indigo-50: var(--t-indigo-50);
-  --color-indigo-100: var(--t-indigo-100);
-  --color-indigo-200: var(--t-indigo-200);
-  --color-indigo-300: var(--t-indigo-300);
-  --color-indigo-400: var(--t-indigo-400);
-  --color-indigo-500: var(--t-indigo-500);
-  --color-indigo-600: var(--t-indigo-600);
-  --color-indigo-700: var(--t-indigo-700);
-  --color-indigo-950: var(--t-indigo-950);
-  --color-green-50: var(--t-green-50);
-  --color-green-100: var(--t-green-100);
-  --color-green-200: var(--t-green-200);
-  --color-green-500: var(--t-green-500);
-  --color-green-600: var(--t-green-600);
-  --color-green-700: var(--t-green-700);
-  --color-amber-50: var(--t-amber-50);
-  --color-amber-100: var(--t-amber-100);
-  --color-amber-300: var(--t-amber-300);
-  --color-amber-600: var(--t-amber-600);
-  --color-amber-700: var(--t-amber-700);
-  --color-amber-800: var(--t-amber-800);
-  --color-red-50: var(--t-red-50);
-  --color-red-100: var(--t-red-100);
-  --color-red-200: var(--t-red-200);
-  --color-red-300: var(--t-red-300);
-  --color-red-500: var(--t-red-500);
-  --color-red-600: var(--t-red-600);
-  --color-red-700: var(--t-red-700);
-  --color-rose-50: var(--t-rose-50);
-  --color-rose-300: var(--t-rose-300);
-  --color-rose-500: var(--t-rose-500);
-  --color-brand: var(--t-brand);
-  --color-ink: var(--t-ink);
+  --color-away: var(--t-away);
+  --color-idle: var(--t-idle);
+  --color-brk: var(--t-brk);
+  --color-off: var(--t-off);
 
-  --shadow-glow: var(--t-shadow-glow);
-  --shadow-pop:  var(--t-shadow-pop);
+  /* Brand scale from the logo — the only purples allowed */
+  --color-brand-950: #1A0833;
+  --color-brand-900: #2A0E4C;
+  --color-brand-800: #442268;
+  --color-brand-700: #58317E;
+  --color-brand-600: #68428C;
+  --color-brand-500: #7B519D;
+  --color-brand-400: #8C5FB1;
+  --color-brand-300: #A077C6;
+  --color-brand-200: #B98FD7;
+  --color-brand-100: #D1ADE9;
+  --color-brand-50: #F4EDFA;
+
+  --shadow-card: var(--t-shadow-card);
+  --radius-md: 11px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* ---- Older names, re-pointed (do not use in new code) ---- */
+  --color-canvas: var(--t-bg);
+  --color-elevated: var(--t-surface-2);
+  --color-sidebar: var(--t-surface);
+  --color-line-strong: var(--t-line);
+  --color-brand-deep: #442268;
+  --color-violet-hover: var(--t-violet);
+  --color-violet-light: var(--t-violet);
+  --color-violet-sheen: var(--t-violet-strong);
+  --color-warn: var(--t-idle);
+  --color-bad: var(--t-off);
+  --color-info: var(--t-violet);
+  --color-cat-work: var(--t-ok);
+  --color-cat-away: var(--t-away);
+  --color-cat-idle: var(--t-idle);
+  --color-cat-break: var(--t-brk);
+  --color-cat-off: var(--t-off);
+  --color-brand: var(--t-violet);
+  --color-ink: #FFFFFF;
+  --color-white: #FFFFFF; /* real white: text on the purple panel and on gradient buttons */
+  --color-slate-50: var(--t-surface-2);
+  --color-slate-100: var(--t-surface-2);
+  --color-slate-200: var(--t-line);
+  --color-slate-300: var(--t-fg-3);
+  --color-slate-400: var(--t-fg-3);
+  --color-slate-500: var(--t-fg-3);
+  --color-slate-600: var(--t-fg-2);
+  --color-slate-700: var(--t-fg-2);
+  --color-slate-800: var(--t-fg);
+  --color-slate-900: var(--t-fg);
+  --color-indigo-50: var(--t-violet-tint);
+  --color-indigo-100: var(--t-violet-tint);
+  --color-indigo-200: var(--t-violet-tint);
+  --color-indigo-300: var(--t-violet);
+  --color-indigo-400: var(--t-violet);
+  --color-indigo-500: var(--t-violet);
+  --color-indigo-600: var(--t-violet);
+  --color-indigo-700: var(--t-violet-strong);
+  --color-indigo-950: #442268;
+  --color-green-50: var(--t-ok-tint);
+  --color-green-100: var(--t-ok-tint);
+  --color-green-200: var(--t-ok-tint);
+  --color-green-500: var(--t-ok);
+  --color-green-600: var(--t-ok);
+  --color-green-700: var(--t-ok);
+  --color-amber-50: var(--t-idle-tint);
+  --color-amber-100: var(--t-idle-tint);
+  --color-amber-300: var(--t-idle);
+  --color-amber-600: var(--t-idle-text);
+  --color-amber-700: var(--t-idle-text);
+  --color-amber-800: var(--t-idle-text);
+  --color-red-50: var(--t-off-tint);
+  --color-red-100: var(--t-off-tint);
+  --color-red-200: var(--t-off-tint);
+  --color-red-300: var(--t-off);
+  --color-red-500: var(--t-off);
+  --color-red-600: var(--t-off-text);
+  --color-red-700: var(--t-off-text);
+  --color-rose-50: var(--t-off-tint);
+  --color-rose-300: var(--t-off);
+  --color-rose-500: var(--t-off-text);
+  --shadow-pop: var(--t-shadow-card);
+  --shadow-glow: var(--t-shadow-btn);
 }
 
-/* ---------- Dark: "Obsidian & Violet" (default) ---------- */
+/* ---------- Dark (default): pure black ---------- */
 :root {
   color-scheme: dark;
-  --t-canvas: #07060B;
-  --t-surface: #0E0C16;
-  --t-elevated: #151226;
-  --t-sidebar: #0A0911;
-  --t-line: rgb(167 139 250 / 0.14);
-  --t-line-strong: rgb(167 139 250 / 0.26);
-  --t-brand-deep: #45297F;
-  --t-violet: #7C5CE0;
-  --t-violet-hover: #8E70EA;
-  --t-violet-light: #A78BFA;
-  --t-violet-sheen: #DCCFFD;
-  --t-fg: #F4F2FA;
-  --t-fg-2: #BDB8CE;
-  --t-fg-3: #9A96A8;
-  --t-ok: #4ADE9A;
-  --t-warn: #F5C451;
-  --t-bad: #F87171;
-  --t-info: #A78BFA;
-  --t-cat-work: #7C5CE0;
-  --t-cat-away: #4FD1C5;
-  --t-cat-idle: #8A8696;
-  --t-cat-break: #F5C451;
-  --t-cat-off: #B4384A;
-  --t-white: #FFFFFF;
-  --t-slate-50: #0B0A12;
-  --t-slate-100: #151226;
-  --t-slate-200: #221D36;
-  --t-slate-300: #332C4D;
-  --t-slate-400: #9A96A8;
-  --t-slate-500: #B3AEC4;
-  --t-slate-600: #C8C4D6;
-  --t-slate-700: #CFCBDD;
-  --t-slate-800: #E6E3F0;
-  --t-slate-900: #F4F2FA;
-  --t-indigo-50: rgb(124 92 224 / 0.12);
-  --t-indigo-100: rgb(124 92 224 / 0.20);
-  --t-indigo-200: rgb(167 139 250 / 0.30);
-  --t-indigo-300: #A78BFA;
-  --t-indigo-400: #A78BFA;
-  --t-indigo-500: #8E70EA;
-  --t-indigo-600: #7C5CE0;
-  --t-indigo-700: #BBA4FB;
-  --t-indigo-950: #45297F;
-  --t-green-50: rgb(74 222 154 / 0.10);
-  --t-green-100: rgb(74 222 154 / 0.16);
-  --t-green-200: rgb(74 222 154 / 0.28);
-  --t-green-500: #34C982;
-  --t-green-600: #23A66A;
-  --t-green-700: #4ADE9A;
-  --t-amber-50: rgb(245 196 81 / 0.10);
-  --t-amber-100: rgb(245 196 81 / 0.16);
-  --t-amber-300: #C99A2E;
-  --t-amber-600: #F5C451;
-  --t-amber-700: #F5C451;
-  --t-amber-800: #F8D37A;
-  --t-red-50: rgb(248 113 113 / 0.10);
-  --t-red-100: rgb(248 113 113 / 0.16);
-  --t-red-200: rgb(248 113 113 / 0.28);
-  --t-red-300: rgb(248 113 113 / 0.40);
-  --t-red-500: #F87171;
-  --t-red-600: #E05252;
-  --t-red-700: #C43D3D;
-  --t-rose-50: rgb(251 113 133 / 0.10);
-  --t-rose-300: #FB7185;
-  --t-rose-500: #FB7185;
-  --t-brand: #7C5CE0;
-  --t-ink: #FFFFFF;
-  --t-shadow-glow: 0 0 28px -8px rgb(124 92 224 / 0.75);
-  --t-shadow-pop:  0 18px 40px -16px rgb(0 0 0 / 0.85);
-  --t-glow-bg: rgb(124 92 224 / 0.10);
-  --t-scroll: #262040;
+  --t-bg: #000000;
+  --t-surface: #0D0A12;
+  --t-surface-2: #181220;
+  --t-line: rgb(185 143 215 / 0.16);
+  --t-fg: #F5F0FA;
+  --t-fg-2: #B8AFC7;
+  --t-fg-3: #8F869E;
+  --t-violet: #A077C6;
+  --t-violet-strong: #D1ADE9;
+  --t-violet-tint: rgb(160 119 198 / 0.16);
+  --t-ok: #34D399;
+  --t-away: #60A5FA;
+  --t-idle: #FBBF24;
+  --t-brk: #FB923C;
+  --t-off: #FB7185;
+  /* tints and readable text for status chips */
+  --t-ok-tint: rgb(52 211 153 / 0.14);
+  --t-idle-tint: rgb(251 191 36 / 0.14);
+  --t-idle-text: #FBBF24;
+  --t-off-tint: rgb(251 113 133 / 0.14);
+  --t-off-text: #FB7185;
+  --grad-brand: linear-gradient(100deg, #68428C, #8C5FB1);
+  --grad-panel: linear-gradient(155deg, #1A0833, #442268 55%, #68428C);
+  --t-shadow-card: 0 1px 2px rgb(0 0 0 / 0.6), 0 8px 24px rgb(0 0 0 / 0.5);
+  --t-shadow-btn: 0 6px 18px rgb(88 49 126 / 0.45);
+  --t-scroll: #2A2235;
 }
 
-/* ---------- Light: "Pearl & Violet" — same logo colours on a soft lavender-white ---------- */
+/* ---------- Light: pure white ---------- */
 [data-theme="light"] {
   color-scheme: light;
-  --t-canvas: #F6F4FB;
+  --t-bg: #FFFFFF;
   --t-surface: #FFFFFF;
-  --t-elevated: #F0ECF9;
-  --t-sidebar: #FFFFFF;
-  --t-line: rgb(69 41 127/0.12);
-  --t-line-strong: rgb(69 41 127/0.22);
-  --t-brand-deep: #45297F;
-  --t-violet: #6A45D6;
-  --t-violet-hover: #5C38C8;
-  --t-violet-light: #7C5CE0;
-  --t-violet-sheen: #45297F;
-  --t-fg: #17131F;
-  --t-fg-2: #4A4458;
-  --t-fg-3: #625C70;
-  --t-ok: #047857;
-  --t-warn: #B45309;
-  --t-bad: #B91C1C;
-  --t-info: #5434B8;
-  --t-cat-work: #6A45D6;
-  --t-cat-away: #0D9488;
-  --t-cat-idle: #9A96A8;
-  --t-cat-break: #D97706;
-  --t-cat-off: #B91C1C;
-  --t-white: #FFFFFF;
-  --t-slate-50: #F6F4FB;
-  --t-slate-100: #EFEBF8;
-  --t-slate-200: #E2DCF0;
-  --t-slate-300: #CCC4E0;
-  --t-slate-400: #625C70;
-  --t-slate-500: #575166;
-  --t-slate-600: #4A4458;
-  --t-slate-700: #2F2A3A;
-  --t-slate-800: #221E2B;
-  --t-slate-900: #17131F;
-  --t-indigo-50: #F1ECFE;
-  --t-indigo-100: #E6DDFD;
-  --t-indigo-200: #D2C3FA;
-  --t-indigo-300: #A78BFA;
-  --t-indigo-400: #8E70EA;
-  --t-indigo-500: #7C5CE0;
-  --t-indigo-600: #6A45D6;
-  --t-indigo-700: #5434B8;
-  --t-indigo-950: #45297F;
-  --t-green-50: #ECFDF5;
-  --t-green-100: #D1FAE5;
-  --t-green-200: #A7F3D0;
-  --t-green-500: #10B981;
-  --t-green-600: #059669;
-  --t-green-700: #047857;
-  --t-amber-50: #FFFBEB;
-  --t-amber-100: #FEF3C7;
-  --t-amber-300: #FCD34D;
-  --t-amber-600: #D97706;
-  --t-amber-700: #B45309;
-  --t-amber-800: #92400E;
-  --t-red-50: #FEF2F2;
-  --t-red-100: #FEE2E2;
-  --t-red-200: #FECACA;
-  --t-red-300: #FCA5A5;
-  --t-red-500: #EF4444;
-  --t-red-600: #DC2626;
-  --t-red-700: #B91C1C;
-  --t-rose-50: #FFF1F2;
-  --t-rose-300: #FDA4AF;
-  --t-rose-500: #F43F5E;
-  --t-brand: #6A45D6;
-  --t-ink: #FFFFFF;
-  --t-shadow-glow: 0 6px 18px -8px rgb(106 69 214 / 0.55);
-  --t-shadow-pop:  0 18px 40px -18px rgb(45 30 90 / 0.28);
-  --t-glow-bg: rgb(124 92 224 / 0.07);
-  --t-scroll: #D2C8EA;
+  --t-surface-2: #F7F3FB;
+  --t-line: rgb(68 34 104 / 0.12);
+  --t-fg: #1A0833;
+  --t-fg-2: #55486B;
+  --t-fg-3: #7A6E8F;
+  --t-violet: #7B519D;
+  --t-violet-strong: #442268;
+  --t-violet-tint: #F4EDFA;
+  --t-ok: #059669;
+  --t-away: #2F7DE1;
+  --t-idle: #D99A0B;
+  --t-brk: #EA7A1C;
+  --t-off: #E5546B;
+  --t-ok-tint: #E7F6EF;
+  --t-idle-tint: #FFF4DC;
+  --t-idle-text: #8A5A00;
+  --t-off-tint: #FDECEF;
+  --t-off-text: #B4233A;
+  --grad-brand: linear-gradient(100deg, #58317E, #8C5FB1);
+  --grad-panel: linear-gradient(155deg, #2A0E4C, #58317E 55%, #8C5FB1);
+  --t-shadow-card: 0 1px 2px rgb(68 34 104 / 0.06), 0 8px 24px rgb(68 34 104 / 0.08);
+  --t-shadow-btn: 0 6px 18px rgb(88 49 126 / 0.35);
+  --t-scroll: #DCCDEB;
 }
 
 body {
-  @apply text-slate-700 text-sm;
-  background:
-    radial-gradient(1200px 600px at 85% -10%, var(--t-glow-bg), transparent 60%),
-    var(--color-canvas);
-  background-attachment: fixed;
+  background: var(--color-bg);
+  color: var(--color-fg-2);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
   min-height: 100vh;
 }
 
-h1, h2, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; color: var(--color-fg); }
+h1, h2, h3.font-display, .font-display { font-family: var(--font-display); font-weight: 300; letter-spacing: -0.01em; color: var(--color-fg); }
+.font-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.micro { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 500; color: var(--color-fg-3); }
 
-input, select, textarea { background-color: var(--color-elevated); color: var(--color-fg); border-color: var(--color-line-strong); }
+input, select, textarea { background-color: var(--color-surface); color: var(--color-fg); border-color: var(--color-line); }
 input::placeholder, textarea::placeholder { color: var(--color-fg-3); }
-option { background: var(--color-elevated); color: var(--color-fg); }
-:focus-visible { outline: 2px solid var(--color-violet-light); outline-offset: 2px; }
-input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; box-shadow: 0 0 0 2px rgb(167 139 250 / 0.45); }
-::selection { background: rgb(124 92 224 / 0.35); color: var(--color-fg); }
+option { background: var(--color-surface); color: var(--color-fg); }
+:focus-visible { outline: 2px solid var(--color-violet); outline-offset: 2px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
+::selection { background: rgb(160 119 198 / 0.30); color: var(--color-fg); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--t-scroll); border-radius: 10px; border: 2px solid var(--color-canvas); }
+::-webkit-scrollbar-thumb { background: var(--t-scroll); border-radius: 10px; border: 2px solid var(--color-bg); }
 ::-webkit-scrollbar-track { background: transparent; }
 
-/* Primary action: violet lit from above, like the orb. */
-.rail { background: linear-gradient(180deg, var(--color-violet-hover), var(--color-violet)); }
-.rail-text {
-  background: linear-gradient(90deg, var(--color-violet-sheen), var(--color-violet-light) 45%, var(--color-violet));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-}
+/* Gradients: primary buttons, ring, bars (brand) and the sign-in panel only (panel). */
+.grad-brand, .rail { background: var(--grad-brand); }
+.rail-text { background: var(--grad-brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .glass { background: var(--color-surface); }
 
-/* Logo: transparent copy (imaginet-logo-clear.png). On light, deepen it so the pale chrome reads on white. */
+/* "Working" status dot breathes; others are still. */
+@keyframes breathe { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ok) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
+.breathe { animation: breathe 2.5s ease-out infinite; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } }
+.fade-up { animation: fade-up 0.25s ease-out; }
+@keyframes shimmer { from { background-position: -200px 0; } to { background-position: calc(200px + 100%) 0; } }
+.skeleton { background: linear-gradient(90deg, var(--color-surface-2), color-mix(in srgb, var(--color-surface-2) 60%, var(--color-surface)), var(--color-surface-2)); background-size: 200px 100%; background-repeat: no-repeat; background-color: var(--color-surface-2); animation: shimmer 1.2s ease-in-out infinite; }
+
+/* Logo: on white, deepen the pale chrome so it reads. */
 [data-theme="light"] .brand-word { filter: brightness(0.62) saturate(1.5); }
-[data-theme="light"] .rail-text { background-image: linear-gradient(90deg, var(--color-brand-deep), var(--color-violet)); }
+
+/* Sign-in brand panel (DESIGN.md §8): --grad-panel with faint translucent triangles. */
+.brand-panel {
+  position: relative; overflow: hidden; color: #fff;
+  background:
+    radial-gradient(620px 460px at 90% 0, rgb(209 173 233 / 0.35), transparent),
+    radial-gradient(520px 420px at 0 100%, rgb(88 49 126 / 0.50), transparent),
+    var(--grad-panel);
+}
+.brand-panel > * { position: relative; z-index: 1; }
+.brand-panel::before, .brand-panel::after {
+  content: ""; position: absolute;
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.20), rgb(255 255 255 / 0.02));
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.brand-panel::before { right: -90px; bottom: -30px; width: 480px; height: 420px; }
+.brand-panel::after { right: 150px; bottom: 40px; width: 300px; height: 260px; opacity: 0.7; }
+.brand-panel .brand-word { filter: brightness(1.25) !important; }
+.brand-panel .text-fg-3 { color: rgb(255 255 255 / 0.70); }
+.brand-panel-em { background: linear-gradient(100deg, #D1ADE9, #fff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
